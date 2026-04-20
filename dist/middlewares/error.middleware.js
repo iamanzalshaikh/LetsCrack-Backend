@@ -1,19 +1,22 @@
 import logger from '../utils/logger.js';
 export const errorHandler = (err, req, res, next) => {
-    logger.error('Unhandled application error:', {
+    logger.error('Unhandled Application Error:', {
         message: err.message,
         stack: err.stack,
         path: req.path,
         method: req.method,
-        body: req.body,
-        user: req.user?.id,
+        body: JSON.stringify(req.body).substring(0, 500), // Log first 500 chars
+        user: req.user?.id
     });
-    const statusCode = err.statusCode || 500;
+    const statusCode = err.status || 500;
     const message = err.message || 'Internal Server Error';
     res.status(statusCode).json({
         success: false,
-        message,
-        stack: process.env.NODE_ENV === 'development' ? err.stack : undefined,
+        error: message,
+        status: statusCode,
+        timestamp: new Date().toISOString(),
+        stack: process.env.NODE_ENV === 'development' ? err.stack : undefined
     });
 };
+export default errorHandler;
 //# sourceMappingURL=error.middleware.js.map

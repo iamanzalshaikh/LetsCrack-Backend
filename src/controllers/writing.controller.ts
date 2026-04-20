@@ -1,5 +1,6 @@
 import { Request, Response, NextFunction } from 'express';
 import TestSession from '../models/TestSession.js';
+import { gradingQueue } from '../queues/index.js';
 import logger from '../utils/logger.js';
 
 /**
@@ -29,7 +30,7 @@ export const autoSave = async (req: Request, res: Response, next: NextFunction) 
         responseText, 
         wordCount, 
         autoSavedAt: new Date() 
-      });
+      } as any);
     } else {
       session.writingResponses[responseIdx].responseText = responseText;
       session.writingResponses[responseIdx].wordCount = wordCount;
@@ -100,12 +101,12 @@ export const submit = async (req: Request, res: Response, next: NextFunction) =>
     };
 
     if (responseIdx === -1) {
-      session.writingResponses.push(submissionData);
+      session.writingResponses.push(submissionData as any);
     } else {
       session.writingResponses[responseIdx] = {
         ...session.writingResponses[responseIdx],
         ...submissionData
-      };
+      } as any;
     }
 
     // Check if all writing tasks are done (Task 1 and 2)
@@ -115,7 +116,20 @@ export const submit = async (req: Request, res: Response, next: NextFunction) =>
     }
 
     await session.save();
-    res.json({ submissionId: session._id, status: 'submitted' });
+
+    // Trigger AI Grading in background
+    await gradingQueue.add(`grade-writing-session-${session._id}-task-${taskNumber}`, {
+      sessionId: session._id,
+      testSetNumber: Number(testSetNumber),
+      taskNumber: Number(taskNumber),
+      module: 'writing'
+    });
+
+    res.json({ 
+      submissionId: session._id, 
+      status: 'submitted',
+      aiGradingStatus: 'queued'
+    });
   } catch (error) {
     next(error);
   }

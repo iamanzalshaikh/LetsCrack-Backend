@@ -27,4 +27,6 @@ export const env = cleanEnv(process.env, {
   // URLs
   FRONTEND_URL: url({ default: 'http://localhost:3000' }),
   CORS_ORIGIN: str({ default: 'http://localhost:3000' }),
+  // Gemini AI
+  GEMINI_API_KEY: str(),
 });

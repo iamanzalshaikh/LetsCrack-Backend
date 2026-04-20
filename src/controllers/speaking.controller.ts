@@ -2,6 +2,7 @@ import { Request, Response, NextFunction } from 'express';
 import TestSession from '../models/TestSession.js';
 import QuestionBank from '../models/QuestionBank.js';
 import { uploadAudio } from '../utils/s3Upload.js';
+import { gradingQueue } from '../queues/index.js';
 import logger from '../utils/logger.js';
 
 /**
@@ -38,22 +39,40 @@ export const saveRecording = async (req: Request, res: Response, next: NextFunct
       audioUrl,
       audioDuration: Number(duration),
       recordedAt: new Date(),
-      submittedAt: new Date()
+      submittedAt: new Date(),
+      transcript: '',
+      aiBand: 0,
+      aiAnalysis: {
+        coherence: 0,
+        vocabulary: 0,
+        listenability: 0,
+        taskFulfillment: 0,
+        feedback: ''
+      }
     };
 
-    session.speakingRecordings.push(recordingData);
+    session.speakingRecordings.push(recordingData as any);
 
     // Check if it's the last task (CELPIP has 8 scored tasks)
     if (Number(taskNumber) === 8) {
-      // Logic for marking module as done
+      session.status = 'submitted';
+      session.completedAt = new Date();
     }
 
     await session.save();
 
+    // Trigger AI Grading in background
+    await gradingQueue.add(`grade-session-${session._id}-task-${taskNumber}`, {
+      sessionId: session._id,
+      testSetNumber: Number(testSetNumber),
+      taskNumber: Number(taskNumber)
+    });
+
     res.json({ 
       recordingId: session._id, 
       audioUrl, 
-      uploadedAt: recordingData.submittedAt 
+      uploadedAt: recordingData.submittedAt,
+      aiGradingStatus: 'queued'
     });
   } catch (error) {
     next(error);

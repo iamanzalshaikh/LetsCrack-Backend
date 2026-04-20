@@ -2,9 +2,13 @@ export declare const env: Readonly<{
     NODE_ENV: "development" | "test" | "production";
     PORT: number;
     DATABASE_URL: string;
+    MONGO_URL: string;
     REDIS_HOST: string;
     REDIS_PORT: number;
-    JWT_SECRET: string;
+    JWT_ACCESS_SECRET: string;
+    JWT_REFRESH_SECRET: string;
+    JWT_ADMIN_ACCESS_SECRET: string;
+    JWT_ADMIN_REFRESH_SECRET: string;
     JWT_EXPIRE: string;
     CLOUDINARY_CLOUD_NAME: string;
     CLOUDINARY_API_KEY: string;
@@ -14,4 +18,6 @@ export declare const env: Readonly<{
     AWS_REGION: string;
     AWS_S3_BUCKET_NAME: string;
     FRONTEND_URL: string;
+    CORS_ORIGIN: string;
+    GEMINI_API_KEY: string;
 } & import("envalid").CleanedEnvAccessors>;

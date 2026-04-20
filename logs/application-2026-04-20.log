@@ -1,0 +1,41 @@
+{"level":"info","message":"Connected to Redis","service":"letscrack-backend","timestamp":"2026-04-20 13:04:13"}
+{"level":"info","message":"MongoDB Connected: 127.0.0.1","service":"letscrack-backend","timestamp":"2026-04-20 13:04:13"}
+{"level":"info","message":"Server is running in development mode on port 5000","service":"letscrack-backend","timestamp":"2026-04-20 13:04:13"}
+{"level":"info","message":"API Documentation at http://localhost:5000/api-docs","service":"letscrack-backend","timestamp":"2026-04-20 13:04:13"}
+{"level":"info","message":"GraphQL Playground at http://localhost:5000/graphql","service":"letscrack-backend","timestamp":"2026-04-20 13:04:13"}
+{"level":"info","message":"Starting AI grading for audio: https://www.soundhelix.com/examples/mp3/SoundHelix-Song-1.mp3","service":"letscrack-backend","timestamp":"2026-04-20 13:05:52"}
+{"level":"error","message":"Gemini AI Service Error: [GoogleGenerativeAI Error]: Error fetching from https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent: [404 Not Found] models/gemini-1.5-flash is not found for API version v1beta, or is not supported for generateContent. Call ListModels to see the list of available models and their supported methods.","service":"letscrack-backend","stack":"Error: [GoogleGenerativeAI Error]: Error fetching from https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent: [404 Not Found] models/gemini-1.5-flash is not found for API version v1beta, or is not supported for generateContent. Call ListModels to see the list of available models and their supported methods.\n    at handleResponseNotOk (file:///C:/Users/ANZAL/Desktop/Letscrackweb/LetsCrack-Backend/node_modules/@google/generative-ai/dist/index.mjs:432:11)\n    at process.processTicksAndRejections (node:internal/process/task_queues:105:5)\n    at async makeRequest (file:///C:/Users/ANZAL/Desktop/Letscrackweb/LetsCrack-Backend/node_modules/@google/generative-ai/dist/index.mjs:401:9)\n    at async generateContent (file:///C:/Users/ANZAL/Desktop/Letscrackweb/LetsCrack-Backend/node_modules/@google/generative-ai/dist/index.mjs:865:22)\n    at async gradeSpeakingTask (C:\\Users\\ANZAL\\Desktop\\Letscrackweb\\LetsCrack-Backend\\src\\utils\\gemini.service.ts:49:20)\n    at async testAiGrading (C:\\Users\\ANZAL\\Desktop\\Letscrackweb\\LetsCrack-Backend\\src\\scripts\\test-gemini.ts:18:20)","status":404,"statusText":"Not Found","timestamp":"2026-04-20 13:06:11"}
+{"level":"info","message":"MongoDB Connected: 127.0.0.1","service":"letscrack-backend","timestamp":"2026-04-20 13:06:52"}
+{"level":"info","message":"Server is running in development mode on port 5000","service":"letscrack-backend","timestamp":"2026-04-20 13:06:52"}
+{"level":"info","message":"API Documentation at http://localhost:5000/api-docs","service":"letscrack-backend","timestamp":"2026-04-20 13:06:52"}
+{"level":"info","message":"GraphQL Playground at http://localhost:5000/graphql","service":"letscrack-backend","timestamp":"2026-04-20 13:06:52"}
+{"level":"info","message":"Connected to Redis","service":"letscrack-backend","timestamp":"2026-04-20 13:06:52"}
+{"level":"info","message":"MongoDB Connected: 127.0.0.1","service":"letscrack-backend","timestamp":"2026-04-20 13:08:51"}
+{"level":"info","message":"Server is running in development mode on port 5000","service":"letscrack-backend","timestamp":"2026-04-20 13:08:51"}
+{"level":"info","message":"API Documentation at http://localhost:5000/api-docs","service":"letscrack-backend","timestamp":"2026-04-20 13:08:51"}
+{"level":"info","message":"GraphQL Playground at http://localhost:5000/graphql","service":"letscrack-backend","timestamp":"2026-04-20 13:08:51"}
+{"level":"info","message":"Connected to Redis","service":"letscrack-backend","timestamp":"2026-04-20 13:08:51"}
+{"level":"info","message":"Starting AI grading for audio: https://www.soundhelix.com/examples/mp3/SoundHelix-Song-1.mp3","service":"letscrack-backend","timestamp":"2026-04-20 13:08:53"}
+{"level":"info","message":"AI grading completed successfully","service":"letscrack-backend","timestamp":"2026-04-20 13:09:13"}
+{"level":"info","message":"Starting AI grading for audio: https://www.soundhelix.com/examples/mp3/SoundHelix-Song-1.mp3","service":"letscrack-backend","timestamp":"2026-04-20 13:09:42"}
+{"level":"info","message":"AI grading completed successfully","service":"letscrack-backend","timestamp":"2026-04-20 13:10:12"}
+{"level":"info","message":"Connected to Redis","service":"letscrack-backend","timestamp":"2026-04-20 13:11:48"}
+{"level":"info","message":"MongoDB Connected: 127.0.0.1","service":"letscrack-backend","timestamp":"2026-04-20 13:11:48"}
+{"level":"info","message":"Server is running in development mode on port 5000","service":"letscrack-backend","timestamp":"2026-04-20 13:11:48"}
+{"level":"info","message":"API Documentation at http://localhost:5000/api-docs","service":"letscrack-backend","timestamp":"2026-04-20 13:11:48"}
+{"level":"info","message":"GraphQL Playground at http://localhost:5000/graphql","service":"letscrack-backend","timestamp":"2026-04-20 13:11:48"}
+{"level":"info","message":"Connected to Redis","service":"letscrack-backend","timestamp":"2026-04-20 13:13:31"}
+{"level":"info","message":"MongoDB Connected: 127.0.0.1","service":"letscrack-backend","timestamp":"2026-04-20 13:13:31"}
+{"level":"info","message":"Server is running in development mode on port 5000","service":"letscrack-backend","timestamp":"2026-04-20 13:13:31"}
+{"level":"info","message":"API Documentation at http://localhost:5000/api-docs","service":"letscrack-backend","timestamp":"2026-04-20 13:13:31"}
+{"level":"info","message":"GraphQL Playground at http://localhost:5000/graphql","service":"letscrack-backend","timestamp":"2026-04-20 13:13:31"}
+{"level":"info","message":"Starting AI grading for writing response...","service":"letscrack-backend","timestamp":"2026-04-20 13:14:48"}
+{"level":"info","message":"AI Writing grading completed successfully","service":"letscrack-backend","timestamp":"2026-04-20 13:14:58"}
+{"level":"info","message":"Starting AI grading for writing response...","service":"letscrack-backend","timestamp":"2026-04-20 13:15:21"}
+{"level":"info","message":"AI Writing grading completed successfully","service":"letscrack-backend","timestamp":"2026-04-20 13:15:28"}
+{"level":"info","message":"MongoDB Connected: 127.0.0.1","service":"letscrack-backend","timestamp":"2026-04-20 13:42:37"}
+{"level":"info","message":"Connected to Redis","service":"letscrack-backend","timestamp":"2026-04-20 15:35:47"}
+{"level":"info","message":"MongoDB Connected: 127.0.0.1","service":"letscrack-backend","timestamp":"2026-04-20 15:35:47"}
+{"level":"info","message":"Server is running in development mode on port 5000","service":"letscrack-backend","timestamp":"2026-04-20 15:35:47"}
+{"level":"info","message":"API Documentation at http://localhost:5000/api-docs","service":"letscrack-backend","timestamp":"2026-04-20 15:35:47"}
+{"level":"info","message":"GraphQL Playground at http://localhost:5000/graphql","service":"letscrack-backend","timestamp":"2026-04-20 15:35:47"}

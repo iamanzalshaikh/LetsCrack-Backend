@@ -76,7 +76,8 @@ export const generateCertificate = (res: Response, data: CertificateData) => {
      .text('Overall CELPIP Level', 70, currentY);
   
   doc.fontSize(20)
-     .text(data.overallBand, 300, currentY, { bold: true });
+     .font('Helvetica-Bold')
+     .text(data.overallBand, 300, currentY);
 
   // --- Footer ---
   doc.moveDown(5);

@@ -6,6 +6,8 @@ const QuestionBankSchema = new mongoose.Schema({
   // Writing Task specific
   taskNumber: Number,
   scenario: { subheading: String, backgroundParagraph: String, taskInstructions: [String] },
+  optionA: String, // Specifically for Writing Task 2
+  optionB: String, // Specifically for Writing Task 2
   wordCountTarget: String,
   sampleResponse: String,
   // Speaking Task specific

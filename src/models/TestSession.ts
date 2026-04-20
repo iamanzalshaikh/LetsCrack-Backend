@@ -13,14 +13,31 @@ const TestSessionSchema = new mongoose.Schema({
     selectedOption: String, // For Task 2 (Option A or B)
     autoSavedAt: Date,
     submittedAt: Date,
-    timeTakenSeconds: Number
+    timeTakenSeconds: Number,
+    aiBand: Number,
+    aiAnalysis: {
+      coherence: Number,
+      vocabulary: Number,
+      readability: Number,
+      taskFulfillment: Number,
+      feedback: String
+    }
   }],
   speakingRecordings: [{
     taskNumber: Number,
     audioUrl: String,
     audioDuration: Number,
     recordedAt: Date,
-    submittedAt: Date
+    submittedAt: Date,
+    transcript: String,
+    aiBand: Number,
+    aiAnalysis: {
+      coherence: Number,
+      vocabulary: Number,
+      listenability: Number,
+      taskFulfillment: Number,
+      feedback: String
+    }
   }],
   // MCQ Support (Reading/Listening)
   mcqResponses: [{

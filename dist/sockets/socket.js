@@ -5,7 +5,7 @@ import { env } from '../config/env.js';
 export const setupSocket = (httpServer) => {
     const io = new Server(httpServer, {
         cors: {
-            origin: [env.FRONTEND_URL],
+            origin: [env.CORS_ORIGIN],
             methods: ['GET', 'POST'],
             credentials: true,
         },
@@ -17,7 +17,7 @@ export const setupSocket = (httpServer) => {
             return next(new Error('Authentication error'));
         }
         try {
-            const decoded = jwt.verify(token, env.JWT_SECRET);
+            const decoded = jwt.verify(token, env.JWT_ACCESS_SECRET);
             socket.data.user = decoded;
             next();
         }
