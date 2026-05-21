@@ -15,7 +15,7 @@ router.use(authMiddleware);
  * @swagger
  * /api/speaking/save-recording:
  *   post:
- *     summary: Upload recorded audio to S3 after speaking task
+ *     summary: Upload recorded audio to Cloudinary after speaking task
  *     tags: [Speaking]
  */
 router.post('/save-recording', upload.single('audioFile'), saveRecording);

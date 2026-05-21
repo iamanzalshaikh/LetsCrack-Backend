@@ -3,7 +3,11 @@ declare const QuestionBankSchema: mongoose.Schema<any, mongoose.Model<any, any, 
     createdAt: NativeDate;
     updatedAt: NativeDate;
     testSetNumber: number;
-    module: "writing" | "speaking" | "reading" | "listening";
+    module: "listening" | "reading" | "writing" | "speaking";
+    mediaType: "none" | "audio" | "video" | "image";
+    allowReplay: boolean;
+    allowSeek: boolean;
+    playLimit: number;
     mcqs: mongoose.Types.DocumentArray<{
         options: string[];
         questionText?: string | null | undefined;
@@ -19,26 +23,32 @@ declare const QuestionBankSchema: mongoose.Schema<any, mongoose.Model<any, any, 
     }>;
     taskNumber?: number | null | undefined;
     audioUrl?: string | null | undefined;
+    wordCountTarget?: string | null | undefined;
     optionA?: string | null | undefined;
     optionB?: string | null | undefined;
-    wordCountTarget?: string | null | undefined;
-    sampleResponse?: string | null | undefined;
-    prompt?: string | null | undefined;
     imageUrl?: string | null | undefined;
-    prepTime?: number | null | undefined;
-    speakingTime?: number | null | undefined;
-    sampleTranscript?: string | null | undefined;
-    passageText?: string | null | undefined;
+    sampleResponse?: string | null | undefined;
     scenario?: {
         taskInstructions: string[];
         subheading?: string | null | undefined;
         backgroundParagraph?: string | null | undefined;
     } | null | undefined;
+    sampleTranscript?: string | null | undefined;
+    mediaUrl?: string | null | undefined;
+    instructionVideoUrl?: string | null | undefined;
+    prompt?: string | null | undefined;
+    prepTime?: number | null | undefined;
+    speakingTime?: number | null | undefined;
+    passageText?: string | null | undefined;
 }, mongoose.Document<unknown, {}, mongoose.FlatRecord<{
     createdAt: NativeDate;
     updatedAt: NativeDate;
     testSetNumber: number;
-    module: "writing" | "speaking" | "reading" | "listening";
+    module: "listening" | "reading" | "writing" | "speaking";
+    mediaType: "none" | "audio" | "video" | "image";
+    allowReplay: boolean;
+    allowSeek: boolean;
+    playLimit: number;
     mcqs: mongoose.Types.DocumentArray<{
         options: string[];
         questionText?: string | null | undefined;
@@ -54,26 +64,32 @@ declare const QuestionBankSchema: mongoose.Schema<any, mongoose.Model<any, any, 
     }>;
     taskNumber?: number | null | undefined;
     audioUrl?: string | null | undefined;
+    wordCountTarget?: string | null | undefined;
     optionA?: string | null | undefined;
     optionB?: string | null | undefined;
-    wordCountTarget?: string | null | undefined;
-    sampleResponse?: string | null | undefined;
-    prompt?: string | null | undefined;
     imageUrl?: string | null | undefined;
-    prepTime?: number | null | undefined;
-    speakingTime?: number | null | undefined;
-    sampleTranscript?: string | null | undefined;
-    passageText?: string | null | undefined;
+    sampleResponse?: string | null | undefined;
     scenario?: {
         taskInstructions: string[];
         subheading?: string | null | undefined;
         backgroundParagraph?: string | null | undefined;
     } | null | undefined;
+    sampleTranscript?: string | null | undefined;
+    mediaUrl?: string | null | undefined;
+    instructionVideoUrl?: string | null | undefined;
+    prompt?: string | null | undefined;
+    prepTime?: number | null | undefined;
+    speakingTime?: number | null | undefined;
+    passageText?: string | null | undefined;
 }>, {}, mongoose.DefaultSchemaOptions> & mongoose.FlatRecord<{
     createdAt: NativeDate;
     updatedAt: NativeDate;
     testSetNumber: number;
-    module: "writing" | "speaking" | "reading" | "listening";
+    module: "listening" | "reading" | "writing" | "speaking";
+    mediaType: "none" | "audio" | "video" | "image";
+    allowReplay: boolean;
+    allowSeek: boolean;
+    playLimit: number;
     mcqs: mongoose.Types.DocumentArray<{
         options: string[];
         questionText?: string | null | undefined;
@@ -89,21 +105,23 @@ declare const QuestionBankSchema: mongoose.Schema<any, mongoose.Model<any, any, 
     }>;
     taskNumber?: number | null | undefined;
     audioUrl?: string | null | undefined;
+    wordCountTarget?: string | null | undefined;
     optionA?: string | null | undefined;
     optionB?: string | null | undefined;
-    wordCountTarget?: string | null | undefined;
-    sampleResponse?: string | null | undefined;
-    prompt?: string | null | undefined;
     imageUrl?: string | null | undefined;
-    prepTime?: number | null | undefined;
-    speakingTime?: number | null | undefined;
-    sampleTranscript?: string | null | undefined;
-    passageText?: string | null | undefined;
+    sampleResponse?: string | null | undefined;
     scenario?: {
         taskInstructions: string[];
         subheading?: string | null | undefined;
         backgroundParagraph?: string | null | undefined;
     } | null | undefined;
+    sampleTranscript?: string | null | undefined;
+    mediaUrl?: string | null | undefined;
+    instructionVideoUrl?: string | null | undefined;
+    prompt?: string | null | undefined;
+    prepTime?: number | null | undefined;
+    speakingTime?: number | null | undefined;
+    passageText?: string | null | undefined;
 }> & {
     _id: mongoose.Types.ObjectId;
 } & {
@@ -113,7 +131,11 @@ declare const QuestionBank: mongoose.Model<{
     createdAt: NativeDate;
     updatedAt: NativeDate;
     testSetNumber: number;
-    module: "writing" | "speaking" | "reading" | "listening";
+    module: "listening" | "reading" | "writing" | "speaking";
+    mediaType: "none" | "audio" | "video" | "image";
+    allowReplay: boolean;
+    allowSeek: boolean;
+    playLimit: number;
     mcqs: mongoose.Types.DocumentArray<{
         options: string[];
         questionText?: string | null | undefined;
@@ -129,26 +151,32 @@ declare const QuestionBank: mongoose.Model<{
     }>;
     taskNumber?: number | null | undefined;
     audioUrl?: string | null | undefined;
+    wordCountTarget?: string | null | undefined;
     optionA?: string | null | undefined;
     optionB?: string | null | undefined;
-    wordCountTarget?: string | null | undefined;
-    sampleResponse?: string | null | undefined;
-    prompt?: string | null | undefined;
     imageUrl?: string | null | undefined;
-    prepTime?: number | null | undefined;
-    speakingTime?: number | null | undefined;
-    sampleTranscript?: string | null | undefined;
-    passageText?: string | null | undefined;
+    sampleResponse?: string | null | undefined;
     scenario?: {
         taskInstructions: string[];
         subheading?: string | null | undefined;
         backgroundParagraph?: string | null | undefined;
     } | null | undefined;
+    sampleTranscript?: string | null | undefined;
+    mediaUrl?: string | null | undefined;
+    instructionVideoUrl?: string | null | undefined;
+    prompt?: string | null | undefined;
+    prepTime?: number | null | undefined;
+    speakingTime?: number | null | undefined;
+    passageText?: string | null | undefined;
 }, {}, {}, {}, mongoose.Document<unknown, {}, {
     createdAt: NativeDate;
     updatedAt: NativeDate;
     testSetNumber: number;
-    module: "writing" | "speaking" | "reading" | "listening";
+    module: "listening" | "reading" | "writing" | "speaking";
+    mediaType: "none" | "audio" | "video" | "image";
+    allowReplay: boolean;
+    allowSeek: boolean;
+    playLimit: number;
     mcqs: mongoose.Types.DocumentArray<{
         options: string[];
         questionText?: string | null | undefined;
@@ -164,26 +192,32 @@ declare const QuestionBank: mongoose.Model<{
     }>;
     taskNumber?: number | null | undefined;
     audioUrl?: string | null | undefined;
+    wordCountTarget?: string | null | undefined;
     optionA?: string | null | undefined;
     optionB?: string | null | undefined;
-    wordCountTarget?: string | null | undefined;
-    sampleResponse?: string | null | undefined;
-    prompt?: string | null | undefined;
     imageUrl?: string | null | undefined;
-    prepTime?: number | null | undefined;
-    speakingTime?: number | null | undefined;
-    sampleTranscript?: string | null | undefined;
-    passageText?: string | null | undefined;
+    sampleResponse?: string | null | undefined;
     scenario?: {
         taskInstructions: string[];
         subheading?: string | null | undefined;
         backgroundParagraph?: string | null | undefined;
     } | null | undefined;
+    sampleTranscript?: string | null | undefined;
+    mediaUrl?: string | null | undefined;
+    instructionVideoUrl?: string | null | undefined;
+    prompt?: string | null | undefined;
+    prepTime?: number | null | undefined;
+    speakingTime?: number | null | undefined;
+    passageText?: string | null | undefined;
 }, {}, mongoose.DefaultSchemaOptions> & {
     createdAt: NativeDate;
     updatedAt: NativeDate;
     testSetNumber: number;
-    module: "writing" | "speaking" | "reading" | "listening";
+    module: "listening" | "reading" | "writing" | "speaking";
+    mediaType: "none" | "audio" | "video" | "image";
+    allowReplay: boolean;
+    allowSeek: boolean;
+    playLimit: number;
     mcqs: mongoose.Types.DocumentArray<{
         options: string[];
         questionText?: string | null | undefined;
@@ -199,21 +233,23 @@ declare const QuestionBank: mongoose.Model<{
     }>;
     taskNumber?: number | null | undefined;
     audioUrl?: string | null | undefined;
+    wordCountTarget?: string | null | undefined;
     optionA?: string | null | undefined;
     optionB?: string | null | undefined;
-    wordCountTarget?: string | null | undefined;
-    sampleResponse?: string | null | undefined;
-    prompt?: string | null | undefined;
     imageUrl?: string | null | undefined;
-    prepTime?: number | null | undefined;
-    speakingTime?: number | null | undefined;
-    sampleTranscript?: string | null | undefined;
-    passageText?: string | null | undefined;
+    sampleResponse?: string | null | undefined;
     scenario?: {
         taskInstructions: string[];
         subheading?: string | null | undefined;
         backgroundParagraph?: string | null | undefined;
     } | null | undefined;
+    sampleTranscript?: string | null | undefined;
+    mediaUrl?: string | null | undefined;
+    instructionVideoUrl?: string | null | undefined;
+    prompt?: string | null | undefined;
+    prepTime?: number | null | undefined;
+    speakingTime?: number | null | undefined;
+    passageText?: string | null | undefined;
 } & {
     _id: mongoose.Types.ObjectId;
 } & {
@@ -222,7 +258,11 @@ declare const QuestionBank: mongoose.Model<{
     createdAt: NativeDate;
     updatedAt: NativeDate;
     testSetNumber: number;
-    module: "writing" | "speaking" | "reading" | "listening";
+    module: "listening" | "reading" | "writing" | "speaking";
+    mediaType: "none" | "audio" | "video" | "image";
+    allowReplay: boolean;
+    allowSeek: boolean;
+    playLimit: number;
     mcqs: mongoose.Types.DocumentArray<{
         options: string[];
         questionText?: string | null | undefined;
@@ -238,26 +278,32 @@ declare const QuestionBank: mongoose.Model<{
     }>;
     taskNumber?: number | null | undefined;
     audioUrl?: string | null | undefined;
+    wordCountTarget?: string | null | undefined;
     optionA?: string | null | undefined;
     optionB?: string | null | undefined;
-    wordCountTarget?: string | null | undefined;
-    sampleResponse?: string | null | undefined;
-    prompt?: string | null | undefined;
     imageUrl?: string | null | undefined;
-    prepTime?: number | null | undefined;
-    speakingTime?: number | null | undefined;
-    sampleTranscript?: string | null | undefined;
-    passageText?: string | null | undefined;
+    sampleResponse?: string | null | undefined;
     scenario?: {
         taskInstructions: string[];
         subheading?: string | null | undefined;
         backgroundParagraph?: string | null | undefined;
     } | null | undefined;
+    sampleTranscript?: string | null | undefined;
+    mediaUrl?: string | null | undefined;
+    instructionVideoUrl?: string | null | undefined;
+    prompt?: string | null | undefined;
+    prepTime?: number | null | undefined;
+    speakingTime?: number | null | undefined;
+    passageText?: string | null | undefined;
 }, mongoose.Document<unknown, {}, mongoose.FlatRecord<{
     createdAt: NativeDate;
     updatedAt: NativeDate;
     testSetNumber: number;
-    module: "writing" | "speaking" | "reading" | "listening";
+    module: "listening" | "reading" | "writing" | "speaking";
+    mediaType: "none" | "audio" | "video" | "image";
+    allowReplay: boolean;
+    allowSeek: boolean;
+    playLimit: number;
     mcqs: mongoose.Types.DocumentArray<{
         options: string[];
         questionText?: string | null | undefined;
@@ -273,26 +319,32 @@ declare const QuestionBank: mongoose.Model<{
     }>;
     taskNumber?: number | null | undefined;
     audioUrl?: string | null | undefined;
+    wordCountTarget?: string | null | undefined;
     optionA?: string | null | undefined;
     optionB?: string | null | undefined;
-    wordCountTarget?: string | null | undefined;
-    sampleResponse?: string | null | undefined;
-    prompt?: string | null | undefined;
     imageUrl?: string | null | undefined;
-    prepTime?: number | null | undefined;
-    speakingTime?: number | null | undefined;
-    sampleTranscript?: string | null | undefined;
-    passageText?: string | null | undefined;
+    sampleResponse?: string | null | undefined;
     scenario?: {
         taskInstructions: string[];
         subheading?: string | null | undefined;
         backgroundParagraph?: string | null | undefined;
     } | null | undefined;
+    sampleTranscript?: string | null | undefined;
+    mediaUrl?: string | null | undefined;
+    instructionVideoUrl?: string | null | undefined;
+    prompt?: string | null | undefined;
+    prepTime?: number | null | undefined;
+    speakingTime?: number | null | undefined;
+    passageText?: string | null | undefined;
 }>, {}, mongoose.DefaultSchemaOptions> & mongoose.FlatRecord<{
     createdAt: NativeDate;
     updatedAt: NativeDate;
     testSetNumber: number;
-    module: "writing" | "speaking" | "reading" | "listening";
+    module: "listening" | "reading" | "writing" | "speaking";
+    mediaType: "none" | "audio" | "video" | "image";
+    allowReplay: boolean;
+    allowSeek: boolean;
+    playLimit: number;
     mcqs: mongoose.Types.DocumentArray<{
         options: string[];
         questionText?: string | null | undefined;
@@ -308,21 +360,23 @@ declare const QuestionBank: mongoose.Model<{
     }>;
     taskNumber?: number | null | undefined;
     audioUrl?: string | null | undefined;
+    wordCountTarget?: string | null | undefined;
     optionA?: string | null | undefined;
     optionB?: string | null | undefined;
-    wordCountTarget?: string | null | undefined;
-    sampleResponse?: string | null | undefined;
-    prompt?: string | null | undefined;
     imageUrl?: string | null | undefined;
-    prepTime?: number | null | undefined;
-    speakingTime?: number | null | undefined;
-    sampleTranscript?: string | null | undefined;
-    passageText?: string | null | undefined;
+    sampleResponse?: string | null | undefined;
     scenario?: {
         taskInstructions: string[];
         subheading?: string | null | undefined;
         backgroundParagraph?: string | null | undefined;
     } | null | undefined;
+    sampleTranscript?: string | null | undefined;
+    mediaUrl?: string | null | undefined;
+    instructionVideoUrl?: string | null | undefined;
+    prompt?: string | null | undefined;
+    prepTime?: number | null | undefined;
+    speakingTime?: number | null | undefined;
+    passageText?: string | null | undefined;
 }> & {
     _id: mongoose.Types.ObjectId;
 } & {

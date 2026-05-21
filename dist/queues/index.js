@@ -1,9 +1,190 @@
-import { Queue, Worker } from 'bullmq';
+import { Queue, Worker, QueueEvents } from 'bullmq';
 import { redis } from '../config/redis.js';
 import logger from '../utils/logger.js';
 import TestSession from '../models/TestSession.js';
 import QuestionBank from '../models/QuestionBank.js';
-import { gradeSpeakingTask } from '../utils/gemini.service.js';
+import WritingQuestion from '../models/WritingQuestion.js';
+import SpeakingQuestion from '../models/SpeakingQuestion.js';
+import TestResult from '../models/TestResult.js';
+import { gradeSpeakingTask, gradeWritingTaskPhase1Scores, gradeWritingTaskPhase2Narrative, buildBlendedCelpipWritingFeedback, } from '../utils/gemini.service.js';
+import { emitToUser } from '../sockets/emitter.js';
+const clampBand = (value) => {
+    const numeric = Number(value);
+    if (!Number.isFinite(numeric))
+        return 0;
+    return Math.max(1, Math.min(12, Math.round(numeric)));
+};
+const averageBand = (scores) => {
+    const valid = scores.map((s) => Number(s)).filter((s) => Number.isFinite(s) && s > 0);
+    if (valid.length === 0)
+        return 0;
+    return clampBand(valid.reduce((sum, s) => sum + s, 0) / valid.length);
+};
+const clampIeltsBand = (value) => {
+    const numeric = Number(value);
+    if (!Number.isFinite(numeric))
+        return 0;
+    const stepped = Math.round(numeric * 2) / 2;
+    return Math.max(0, Math.min(9, stepped));
+};
+/** CELPIP Writing: each task scored out of 6 (whole numbers). */
+const clampCelpipWriting6 = (value) => {
+    const numeric = Number(value);
+    if (!Number.isFinite(numeric))
+        return 0;
+    return Math.max(1, Math.min(6, Math.round(numeric)));
+};
+/** Full task context for CELPIP evaluation (not just background paragraph). */
+const buildWritingEvaluationPrompt = (question, taskNumber) => {
+    const taskTitle = taskNumber === 1
+        ? 'CELPIP Writing Task 1 — Writing an Email'
+        : 'CELPIP Writing Task 2 — Responding to Survey Questions';
+    const parts = [`Task type: ${taskTitle} (taskNumber=${taskNumber})`];
+    if (question.scenario?.subheading)
+        parts.push(`Subheading:\n${question.scenario.subheading}`);
+    if (question.scenario?.backgroundParagraph)
+        parts.push(`Background:\n${question.scenario.backgroundParagraph}`);
+    const taskInstr = question.scenario?.taskInstructions;
+    if (Array.isArray(taskInstr) && taskInstr.length) {
+        parts.push(`Instructions:\n${taskInstr.map((s) => `- ${s}`).join('\n')}`);
+    }
+    if (question.surveyTopic)
+        parts.push(`Survey topic:\n${question.surveyTopic}`);
+    if (question.questions?.length && question.questions[0]?.questionText) {
+        parts.push(`Question:\n${question.questions[0].questionText}`);
+    }
+    if (question.optionA || question.optionB) {
+        parts.push(`Options:\nA) ${question.optionA ?? ''}\nB) ${question.optionB ?? ''}`);
+    }
+    if (question.wordCountTarget)
+        parts.push(`Word count target: ${question.wordCountTarget}`);
+    return parts.join('\n\n').trim() || 'Writing task (prompt not fully configured in CMS).';
+};
+const bandToNumeric = (band) => {
+    if (!band)
+        return null;
+    if (band === 'M')
+        return 0;
+    if (band.includes('-')) {
+        const [start, end] = band.split('-').map(Number);
+        if (Number.isFinite(start) && Number.isFinite(end))
+            return (start + end) / 2;
+    }
+    const asNum = Number(band);
+    return Number.isFinite(asNum) ? asNum : null;
+};
+/** Persist aggregate bands → TestResult + push socket progress — call after DB writes touching aiBand rows. */
+const emitGradingProgressAfterSessionUpdate = async (sessionId, testSetNumber, module, taskNumber) => {
+    let session = await TestSession.findById(sessionId);
+    if (!session)
+        throw new Error('Session not found after grading update');
+    await writeSessionBandsToResult(session, testSetNumber);
+    session = await TestSession.findById(sessionId);
+    if (!session)
+        throw new Error('Session not found after grading update');
+    const [totalWritingTasks, totalSpeakingTasks, readingTask, listeningTask] = await Promise.all([
+        WritingQuestion.countDocuments({ testSetNumber }),
+        SpeakingQuestion.countDocuments({ testSetNumber }),
+        QuestionBank.findOne({ module: 'reading', testSetNumber }).select('mcqs'),
+        QuestionBank.findOne({ module: 'listening', testSetNumber }).select('mcqs'),
+    ]);
+    const gradedWriting = session.writingResponses.filter((r) => (r.aiBand || 0) > 0).length;
+    const gradedSpeaking = session.speakingRecordings.filter((r) => (r.aiBand || 0) > 0).length;
+    const selectedModules = session.selectedModules || ['writing', 'speaking'];
+    const readingCount = readingTask?.mcqs?.length || 0;
+    const listeningCount = listeningTask?.mcqs?.length || 0;
+    const readingSubmitted = session.mcqResponses.filter((r) => r.module === 'reading').length;
+    const listeningSubmitted = session.mcqResponses.filter((r) => r.module === 'listening').length;
+    const gradedReading = readingSubmitted > 0 ? readingCount : 0;
+    const gradedListening = listeningSubmitted > 0 ? listeningCount : 0;
+    const expectedWriting = selectedModules.includes('writing') ? totalWritingTasks : 0;
+    const expectedSpeaking = selectedModules.includes('speaking') ? totalSpeakingTasks : 0;
+    const expectedReading = selectedModules.includes('reading') ? readingCount : 0;
+    const expectedListening = selectedModules.includes('listening') ? listeningCount : 0;
+    const totalGraded = gradedWriting + gradedSpeaking + gradedReading + gradedListening;
+    const totalExpected = expectedWriting + expectedSpeaking + expectedReading + expectedListening;
+    if (totalExpected > 0 && totalGraded >= totalExpected) {
+        await TestSession.updateOne({ _id: sessionId }, { $set: { status: 'graded' } });
+    }
+    emitToUser(session.studentId.toString(), 'grading:updated', {
+        sessionId: session._id,
+        module,
+        taskNumber,
+        status: totalExpected > 0 && totalGraded >= totalExpected ? 'graded' : 'grading',
+        progress: {
+            writing: { graded: gradedWriting, total: expectedWriting },
+            speaking: { graded: gradedSpeaking, total: expectedSpeaking },
+            reading: { graded: gradedReading, total: expectedReading },
+            listening: { graded: gradedListening, total: expectedListening },
+            overall: { graded: totalGraded, total: totalExpected },
+        },
+    });
+};
+const writeSessionBandsToResult = async (session, testSetNumber) => {
+    let result = await TestResult.findOne({ testSessionId: session._id });
+    if (!result) {
+        result = new TestResult({
+            studentId: session.studentId,
+            testSessionId: session._id,
+            testSetNumber,
+        });
+    }
+    const writingResponses = (session.writingResponses || []).filter((r) => (r.aiBand || 0) > 0);
+    if (writingResponses.length > 0) {
+        const task1 = writingResponses.find((r) => r.taskNumber === 1);
+        const task2 = writingResponses.find((r) => r.taskNumber === 2);
+        const writingBandNumeric = averageBand(writingResponses.map((r) => r.aiBand));
+        result.writingBand = {
+            task1Scores: task1
+                ? {
+                    content: task1.aiAnalysis?.coherence || 0,
+                    vocab: task1.aiAnalysis?.vocabulary || 0,
+                    readability: task1.aiAnalysis?.readability || 0,
+                    taskFulfillment: task1.aiAnalysis?.taskFulfillment || 0,
+                }
+                : undefined,
+            task2Scores: task2
+                ? {
+                    content: task2.aiAnalysis?.coherence || 0,
+                    vocab: task2.aiAnalysis?.vocabulary || 0,
+                    readability: task2.aiAnalysis?.readability || 0,
+                    taskFulfillment: task2.aiAnalysis?.taskFulfillment || 0,
+                }
+                : undefined,
+            finalBand: writingBandNumeric ? String(writingBandNumeric) : undefined,
+        };
+    }
+    const speakingRecordings = (session.speakingRecordings || []).filter((r) => (r.aiBand || 0) > 0);
+    if (speakingRecordings.length > 0) {
+        const speakingBandNumeric = averageBand(speakingRecordings.map((r) => r.aiBand));
+        result.speakingBand = {
+            taskScores: speakingRecordings.map((r) => ({
+                taskNumber: r.taskNumber,
+                subTask: r.subTask ?? null,
+                coherence: r.aiAnalysis?.coherence || 0,
+                vocabulary: r.aiAnalysis?.vocabulary || 0,
+                listenability: r.aiAnalysis?.listenability || 0,
+                taskFulfillment: r.aiAnalysis?.taskFulfillment || 0,
+                examinerFeedback: r.aiAnalysis?.feedback || '',
+            })),
+            finalBand: speakingBandNumeric ? String(speakingBandNumeric) : undefined,
+        };
+    }
+    const candidateBands = [
+        result.writingBand?.finalBand,
+        result.speakingBand?.finalBand,
+        result.readingBand?.finalBand,
+        result.listeningBand?.finalBand,
+    ]
+        .map(bandToNumeric)
+        .filter((v) => v !== null);
+    if (candidateBands.length) {
+        result.overallBand = (candidateBands.reduce((sum, v) => sum + v, 0) / candidateBands.length).toFixed(1);
+    }
+    result.scoredAt = new Date();
+    await result.save();
+    return result;
+};
 // --- Notifications Queue ---
 export const notificationQueue = new Queue('notifications', {
     connection: redis,
@@ -23,40 +204,165 @@ export const gradingQueue = new Queue('grading', {
         backoff: { type: 'exponential', delay: 2000 },
     },
 });
+export const gradingQueueEvents = new QueueEvents('grading', { connection: redis });
 export const gradingWorker = new Worker('grading', async (job) => {
-    const { sessionId, testSetNumber, taskNumber } = job.data;
-    logger.info(`Processing AI grading for Session ${sessionId}, Task ${taskNumber}`);
+    const { sessionId, testSetNumber, taskNumber, subTask, module = 'speaking' } = job.data;
+    logger.info(`Processing AI grading for Session ${sessionId}, ${module} Task ${taskNumber} ${subTask || ''}`);
     try {
-        // 1. Find the session and the specific recording
-        const session = await TestSession.findById(sessionId);
+        // 1. Find the session
+        let session = await TestSession.findById(sessionId);
         if (!session)
             throw new Error('Session not found');
-        const recording = session.speakingRecordings.find(r => r.taskNumber === taskNumber);
-        if (!recording || !recording.audioUrl)
-            throw new Error('Audio URL not found for task');
         // 2. Get the task prompt
-        const question = await QuestionBank.findOne({
-            module: 'speaking',
-            testSetNumber,
-            taskNumber
-        });
-        if (!question)
-            throw new Error('Question not found');
-        // 3. Call Gemini for grading
-        const result = await gradeSpeakingTask(recording.audioUrl, question.prompt || '');
-        // 4. Update the session
-        recording.transcript = result.transcript;
-        recording.aiBand = result.aiBand;
-        recording.aiAnalysis = result.analysis;
-        await session.save();
-        logger.info(`AI Grading successful for Session ${sessionId}, Task ${taskNumber}`);
+        if (module === 'speaking') {
+            const tn = Number(taskNumber);
+            const st = tn === 5 ? (subTask === 'B' ? 'B' : 'A') : null;
+            const question = await SpeakingQuestion.findOne({ testSetNumber, taskNumber: tn, subTask: st });
+            if (!question)
+                throw new Error('Question not found');
+            const recording = session.speakingRecordings.find((r) => {
+                const m = r;
+                if (m.taskNumber !== tn)
+                    return false;
+                if (tn === 5) {
+                    const a = m.subTask === 'B' ? 'B' : 'A';
+                    const b = st === 'B' ? 'B' : 'A';
+                    return a === b;
+                }
+                return !m.subTask;
+            });
+            if (!recording || !recording.audioUrl)
+                throw new Error('Audio URL not found for task');
+            const result = await gradeSpeakingTask(recording.audioUrl, question.prompt || '');
+            const normalizedAnalysis = {
+                coherence: clampBand(result?.analysis?.coherence),
+                vocabulary: clampBand(result?.analysis?.vocabulary),
+                listenability: clampBand(result?.analysis?.listenability),
+                taskFulfillment: clampBand(result?.analysis?.taskFulfillment),
+                feedback: String(result?.analysis?.feedback || ''),
+            };
+            const normalizedBand = clampBand(result?.aiBand) ||
+                averageBand([
+                    normalizedAnalysis.coherence,
+                    normalizedAnalysis.vocabulary,
+                    normalizedAnalysis.listenability,
+                    normalizedAnalysis.taskFulfillment,
+                ]);
+            const speakingQuery = {
+                _id: sessionId,
+                'speakingRecordings.taskNumber': tn,
+            };
+            if (tn === 5) {
+                speakingQuery['speakingRecordings.subTask'] = st;
+            }
+            const speakingUpdateRes = await TestSession.updateOne(speakingQuery, {
+                $set: {
+                    'speakingRecordings.$.transcript': result.transcript,
+                    'speakingRecordings.$.aiBand': normalizedBand,
+                    'speakingRecordings.$.aiAnalysis': normalizedAnalysis,
+                },
+            });
+            if (!speakingUpdateRes.matchedCount) {
+                throw new Error('Speaking recording row not found for atomic grading update');
+            }
+        }
+        else if (module === 'writing') {
+            const tn = Number(taskNumber);
+            const question = await WritingQuestion.findOne({ testSetNumber, taskNumber });
+            if (!question)
+                throw new Error('Question not found');
+            const response = session.writingResponses.find(r => r.taskNumber === taskNumber);
+            if (!response || !response.responseText)
+                throw new Error('Response text not found for writing task');
+            const taskPromptForAi = buildWritingEvaluationPrompt(question, tn);
+            const phase1 = await gradeWritingTaskPhase1Scores(response.responseText, taskPromptForAi, tn);
+            const normalizedBand = clampCelpipWriting6(phase1.overallBand) ||
+                clampCelpipWriting6((phase1.coherenceMeaning +
+                    phase1.vocabulary +
+                    phase1.readability +
+                    phase1.taskFulfillment) /
+                    4);
+            const partialFeedback = buildBlendedCelpipWritingFeedback(tn, normalizedBand, phase1.overallRemark, phase1.categoryBullets, '', phase1.strengths, phase1.improvements, phase1.quickTips, [], '');
+            const bulletsP1 = phase1.categoryBullets;
+            const normalizedAnalysisPartial = {
+                coherence: clampCelpipWriting6(phase1.coherenceMeaning),
+                vocabulary: clampCelpipWriting6(phase1.vocabulary),
+                readability: clampCelpipWriting6(phase1.readability),
+                taskFulfillment: clampCelpipWriting6(phase1.taskFulfillment),
+                feedback: partialFeedback,
+                taskAchievement: clampCelpipWriting6(phase1.taskAchievement),
+                coherenceCohesion: clampCelpipWriting6(phase1.coherenceCohesion),
+                lexicalResource: clampCelpipWriting6(phase1.lexicalResource),
+                grammar: clampCelpipWriting6(phase1.grammar),
+                strengths: phase1.strengths.slice(0, 8).map((s) => String(s)),
+                improvements: phase1.improvements.slice(0, 8).map((s) => String(s)),
+                quickTips: phase1.quickTips.slice(0, 6).map((s) => String(s)),
+                lineFeedback: [],
+                modelAnswer: '',
+                overallRemark: phase1.overallRemark,
+                detailedFeedback: '',
+                categoryBullets: {
+                    coherenceMeaning: bulletsP1.coherenceMeaning.slice(0, 4),
+                    vocabulary: bulletsP1.vocabulary.slice(0, 4),
+                    readability: bulletsP1.readability.slice(0, 4),
+                    taskFulfillment: bulletsP1.taskFulfillment.slice(0, 4),
+                },
+            };
+            let writingUpdateRes = await TestSession.updateOne({ _id: sessionId, 'writingResponses.taskNumber': taskNumber }, {
+                $set: {
+                    'writingResponses.$.aiBand': normalizedBand,
+                    'writingResponses.$.aiAnalysis': normalizedAnalysisPartial,
+                },
+            });
+            if (!writingUpdateRes.matchedCount) {
+                throw new Error('Writing response row not found for atomic grading update');
+            }
+            await emitGradingProgressAfterSessionUpdate(sessionId, testSetNumber, module, tn);
+            const phase2 = await gradeWritingTaskPhase2Narrative(response.responseText, taskPromptForAi, tn, {
+                overallBand: normalizedBand,
+                overallRemark: phase1.overallRemark,
+            });
+            const fullFeedback = buildBlendedCelpipWritingFeedback(tn, normalizedBand, phase1.overallRemark, phase1.categoryBullets, phase2.detailedFeedback, phase1.strengths, phase1.improvements, phase1.quickTips, phase2.lineFeedback, phase2.modelAnswer);
+            const normalizedAnalysisFull = {
+                ...normalizedAnalysisPartial,
+                feedback: fullFeedback,
+                lineFeedback: phase2.lineFeedback.slice(0, 6).map((item) => ({
+                    original: String(item?.original || ''),
+                    issue: String(item?.issue || ''),
+                    fix: String(item?.fix || ''),
+                })),
+                modelAnswer: String(phase2.modelAnswer || ''),
+                detailedFeedback: String(phase2.detailedFeedback || '').trim(),
+            };
+            writingUpdateRes = await TestSession.updateOne({ _id: sessionId, 'writingResponses.taskNumber': taskNumber }, {
+                $set: {
+                    'writingResponses.$.aiBand': normalizedBand,
+                    'writingResponses.$.aiAnalysis': normalizedAnalysisFull,
+                },
+            });
+            if (!writingUpdateRes.matchedCount) {
+                throw new Error('Writing response row not found for atomic grading update');
+            }
+        }
+        await emitGradingProgressAfterSessionUpdate(sessionId, testSetNumber, module, Number(taskNumber));
+        logger.info(`AI Grading successful for Session ${sessionId}, ${module} Task ${taskNumber}`);
     }
     catch (error) {
         logger.error(`Grading Job ${job.id} Error:`, error);
-        throw error; // Re-throw to allow BullMQ to retry based on job options
+        if (job.data?.sessionId) {
+            const session = await TestSession.findById(job.data.sessionId).select('studentId');
+            if (session?.studentId) {
+                emitToUser(session.studentId.toString(), 'grading:failed', {
+                    sessionId: job.data.sessionId,
+                    module: job.data.module || 'speaking',
+                    taskNumber: job.data.taskNumber,
+                    message: 'AI grading failed for this task. Retry in progress.',
+                });
+            }
+        }
+        throw error;
     }
-}, { connection: redis, concurrency: 2 } // Limit concurrency for Gemini free tier limits
-);
+}, { connection: redis, concurrency: 2 });
 // Event Listeners
 notificationWorker.on('completed', (job) => logger.info(`Notification job ${job.id} completed`));
 gradingWorker.on('completed', (job) => logger.info(`Grading job ${job.id} completed`));

@@ -1,32 +1,237 @@
 import { Request, Response, NextFunction } from 'express';
+import mongoose from 'mongoose';
 import TestResult from '../models/TestResult.js';
 import TestSession from '../models/TestSession.js';
-import { generateCertificate } from '../utils/pdf.js';
+import QuestionBank from '../models/QuestionBank.js';
+import WritingQuestion from '../models/WritingQuestion.js';
+import SpeakingQuestion from '../models/SpeakingQuestion.js';
+import TestSet from '../models/TestSet.js';
+import { generateCertificate, generateAiEvaluationReport } from '../utils/pdf.js';
 import logger from '../utils/logger.js';
+import { computeEffectiveMediaPolicy } from '../utils/mediaPolicy.js';
+import { cancelGradingJobsForSession } from '../queues/index.js';
+
+/** End open attempts and cancel queued Gemini jobs (does not call Gemini). */
+const closeInProgressSessionsForStudent = async (
+  studentId: string,
+  options?: { testSetNumber?: number; exceptSessionId?: string },
+): Promise<number> => {
+  const query: Record<string, unknown> = { studentId, status: 'in_progress' };
+  if (options?.testSetNumber != null) {
+    query.testSetNumber = options.testSetNumber;
+  }
+  if (options?.exceptSessionId) {
+    query._id = { $ne: new mongoose.Types.ObjectId(options.exceptSessionId) };
+  }
+
+  const sessions = await TestSession.find(query);
+  let closed = 0;
+  for (const s of sessions) {
+    s.status = 'submitted';
+    s.completedAt = new Date();
+    (s as { endedEarly?: boolean }).endedEarly = true;
+    await s.save();
+    await cancelGradingJobsForSession(String(s._id));
+    closed++;
+  }
+  if (closed > 0) {
+    logger.info(`Auto-closed ${closed} in-progress session(s) for student ${studentId}`);
+  }
+  return closed;
+};
 
 /**
  * Get results for a specific test set
+ * Optional query `sessionId`: when present (e.g. from /results/:setNumber?sessionId=…), load writing/speaking
+ * from that attempt. Otherwise defaults to latest TestResult for the set — which often points at a **different**
+ * session than the one just finished, so clients should pass sessionId after a test whenever possible.
  */
 export const getResults = async (req: Request, res: Response, next: NextFunction) => {
   try {
     const { testSetNumber } = req.params;
     const studentId = (req as any).user.id;
+    const tn = Number(testSetNumber);
 
-    const result = await TestResult.findOne({
-      studentId,
-      testSetNumber: Number(testSetNumber)
-    }).sort({ createdAt: -1 });
+    const sessionIdQs = typeof req.query.sessionId === 'string' ? req.query.sessionId.trim() : '';
 
-    if (!result) {
-      return res.status(404).json({ error: 'Results not yet available for this test set' });
+    const SESSION_PROJECT =
+      'writingResponses speakingRecordings status completedAt updatedAt selectedModules' as const;
+
+    let session: InstanceType<typeof TestSession> | null = null;
+    let result: InstanceType<typeof TestResult> | null = null;
+
+    /** Resolve by URL session first so we attach writing to the attempt the student just finished. */
+    if (sessionIdQs && mongoose.Types.ObjectId.isValid(sessionIdQs)) {
+      const byAttempt = await TestSession.findOne({
+        _id: new mongoose.Types.ObjectId(sessionIdQs),
+        studentId,
+        testSetNumber: tn,
+      }).select(SESSION_PROJECT);
+
+      if (byAttempt) {
+        session = byAttempt as InstanceType<typeof TestSession>;
+        result = await TestResult.findOne({ studentId, testSessionId: byAttempt._id });
+      }
     }
 
+    /** No session query (or unknown id): fallback to legacy “latest scored result row” for this set. */
+    if (!session) {
+      const fallbackResult =
+        (await TestResult.findOne({ studentId, testSetNumber: tn }).sort({ createdAt: -1 })) || null;
+
+      if (!fallbackResult) {
+        return res.status(404).json({ error: 'Results not yet available for this test set' });
+      }
+
+      if (!fallbackResult.testSessionId) {
+        return res.status(404).json({ error: 'Results not yet available for this test set' });
+      }
+
+      const loaded = await TestSession.findById(fallbackResult.testSessionId).select(SESSION_PROJECT);
+      if (!loaded) {
+        return res.status(404).json({ error: 'Results not yet available for this test set' });
+      }
+
+      session = loaded as InstanceType<typeof TestSession>;
+      result = fallbackResult;
+    }
+
+    /** Explicit session match but grading has not upserted a TestResult row yet. */
+    if (session && !result) {
+      result =
+        (await TestResult.findOne({ studentId, testSessionId: session._id })) || null;
+    }
+    const writingFeedback: string[] =
+      session?.writingResponses
+        ?.map((r: any) => String(r?.aiAnalysis?.feedback || '').trim())
+        .filter((f: string) => Boolean(f)) || [];
+    /** Prefer finalized rows per task; merge draft autosaves when Task N was skipped without Submit (legacy UX). */
+    const pickResponsesForPayload = (): {
+      taskNumber: number;
+      responseText: string;
+      wordCount?: number;
+      submissionStatus: 'submitted' | 'draft';
+    }[] => {
+      const picks = new Map<number, Record<string, unknown>>();
+      const raw = Array.isArray((session as any)?.writingResponses) ? (session as any).writingResponses : [];
+
+      for (const r of raw as Record<string, unknown>[]) {
+        const tn = Number(r.taskNumber);
+        if (!Number.isFinite(tn) || tn < 1) continue;
+        const text = String(r.responseText ?? '').trim();
+        if (text.length < 40) continue;
+        const cur = picks.get(tn);
+        if (!cur) {
+          picks.set(tn, r);
+          continue;
+        }
+        const rank = (x: Record<string, unknown>): number =>
+          (Boolean(x.submittedAt) ? 1e12 : 0) + String(x.responseText ?? '').trim().length;
+        if (rank(r as Record<string, unknown>) >= rank(cur)) picks.set(tn, r as Record<string, unknown>);
+      }
+
+      return [...picks.entries()]
+        .sort((a, b) => a[0] - b[0])
+        .map(([, r]) => ({
+          taskNumber: Number(r.taskNumber),
+          responseText: String(r.responseText || ''),
+          wordCount: typeof r.wordCount === 'number' ? r.wordCount : undefined,
+          submissionStatus: (r.submittedAt ? 'submitted' : 'draft') as 'submitted' | 'draft',
+        }));
+    };
+    const writingSubmissions = pickResponsesForPayload();
+
+    const writingInsights =
+      session?.writingResponses
+        ?.filter((r: any) => Boolean(r?.aiAnalysis))
+        .sort((a: any, b: any) => Number(a.taskNumber || 0) - Number(b.taskNumber || 0))
+        .map((r: any) => ({
+          taskNumber: r.taskNumber,
+          responseText: String(r.responseText || ''),
+          overallBand: r.aiBand,
+          coherence: r.aiAnalysis?.coherence,
+          vocabulary: r.aiAnalysis?.vocabulary,
+          readability: r.aiAnalysis?.readability,
+          taskFulfillment: r.aiAnalysis?.taskFulfillment,
+          taskAchievement: r.aiAnalysis?.taskAchievement,
+          coherenceCohesion: r.aiAnalysis?.coherenceCohesion,
+          lexicalResource: r.aiAnalysis?.lexicalResource,
+          grammar: r.aiAnalysis?.grammar,
+          feedback: String(r.aiAnalysis?.feedback || ''),
+          overallRemark: String(r.aiAnalysis?.overallRemark || ''),
+          detailedFeedback: String(r.aiAnalysis?.detailedFeedback || ''),
+          categoryBullets: r.aiAnalysis?.categoryBullets || null,
+          strengths: Array.isArray(r.aiAnalysis?.strengths) ? r.aiAnalysis.strengths : [],
+          improvements: Array.isArray(r.aiAnalysis?.improvements) ? r.aiAnalysis.improvements : [],
+          quickTips: Array.isArray(r.aiAnalysis?.quickTips) ? r.aiAnalysis.quickTips : [],
+          lineFeedback: Array.isArray(r.aiAnalysis?.lineFeedback) ? r.aiAnalysis.lineFeedback : [],
+          modelAnswer: String(r.aiAnalysis?.modelAnswer || ''),
+        })) || [];
+    const speakingFeedback: string[] =
+      session?.speakingRecordings
+        ?.map((r: any) => String(r?.aiAnalysis?.feedback || '').trim())
+        .filter((f: string) => Boolean(f)) || [];
+
+    const speakingInsights =
+      session?.speakingRecordings
+        ?.filter((r: any) => Boolean(r?.aiAnalysis || r?.transcript || r?.audioUrl))
+        .sort((a: any, b: any) => {
+          if (a.taskNumber !== b.taskNumber) {
+            return Number(a.taskNumber || 0) - Number(b.taskNumber || 0);
+          }
+          const subA = a.subTask || '';
+          const subB = b.subTask || '';
+          return subA.localeCompare(subB);
+        })
+        .map((r: any) => ({
+          taskNumber: r.taskNumber,
+          subTask: r.subTask || null,
+          audioUrl: r.audioUrl,
+          audioDuration: r.audioDuration,
+          transcript: r.transcript || '',
+          overallBand: r.aiBand,
+          coherence: r.aiAnalysis?.coherence,
+          vocabulary: r.aiAnalysis?.vocabulary,
+          listenability: r.aiAnalysis?.listenability,
+          taskFulfillment: r.aiAnalysis?.taskFulfillment,
+          feedback: String(r.aiAnalysis?.feedback || ''),
+        })) || [];
+
+    const speakingQuestions = await SpeakingQuestion.find({ testSetNumber: tn })
+      .select('taskNumber subTask prompt prepTime speakingTime sampleTranscript imageUrl imageUrlA imageUrlB imageUrlC optionALabel optionBLabel optionCLabel')
+      .sort({ taskNumber: 1, subTask: 1 })
+      .lean();
+
+    const writingRows = await WritingQuestion.find({ testSetNumber: Number(testSetNumber) })
+      .select('taskNumber')
+      .sort({ taskNumber: 1 })
+      .lean();
+    const expectedWritingTaskNumbers = writingRows
+      .map((w: { taskNumber?: number }) => Number(w.taskNumber))
+      .filter((n: number) => Number.isFinite(n) && n > 0);
+
+    const sessionAny = session as unknown as {
+      completedAt?: Date | null;
+      updatedAt?: Date | null;
+    };
+
     res.json({
-      writingBand: result.writingBand?.finalBand,
-      speakingBand: result.speakingBand?.finalBand,
-      overallBand: result.overallBand,
-      submittedAt: result.createdAt,
-      publishedAt: result.publishedAt
+      ...(result ? { _id: String(result._id) } : {}),
+      writingBand: result?.writingBand?.finalBand,
+      speakingBand: result?.speakingBand?.finalBand,
+      readingBand: result?.readingBand?.finalBand,
+      listeningBand: result?.listeningBand?.finalBand,
+      overallBand: result?.overallBand,
+      submittedAt: result?.createdAt ?? sessionAny?.completedAt ?? sessionAny?.updatedAt,
+      publishedAt: result?.publishedAt,
+      selectedModules: session?.selectedModules || ['writing', 'speaking'],
+      writingFeedback,
+      writingSubmissions,
+      writingInsights,
+      expectedWritingTaskNumbers,
+      speakingFeedback,
+      speakingInsights,
+      speakingQuestions,
     });
   } catch (error) {
     next(error);
@@ -40,17 +245,124 @@ export const getProgress = async (req: Request, res: Response, next: NextFunctio
   try {
     const studentId = (req as any).user.id;
 
-    const attempts = await TestResult.find({ studentId })
-      .sort({ createdAt: -1 });
+    // Fetch all TestResults (graded)
+    const results = await TestResult.find({ studentId }).sort({ createdAt: -1 });
+    
+    // Fetch all TestSessions (submitted or graded) to find those that don't have a result row yet
+    const sessions = await TestSession.find({ 
+      studentId, 
+      status: { $in: ['submitted', 'grading', 'graded'] } 
+    }).sort({ completedAt: -1, startedAt: -1 });
 
-    const formattedAttempts = attempts.map(a => ({
-      setNumber: a.testSetNumber,
-      writingBand: a.writingBand?.finalBand,
-      speakingBand: a.speakingBand?.finalBand,
-      date: a.createdAt
-    }));
+    const resultSessionIds = new Set(results.map(r => r.testSessionId?.toString()).filter(Boolean));
+
+    const formattedAttempts: any[] = [];
+
+    // Add Graded Results
+    results.forEach(a => {
+      formattedAttempts.push({
+        setNumber: a.testSetNumber,
+        writingBand: a.writingBand?.finalBand,
+        speakingBand: a.speakingBand?.finalBand,
+        overallBand: a.overallBand,
+        date: a.createdAt,
+        status: 'graded'
+      });
+    });
+
+    // Add Sessions that are not yet in TestResults (e.g. submitted but still grading)
+    sessions.forEach(s => {
+      if (!resultSessionIds.has(s._id.toString())) {
+        formattedAttempts.push({
+          setNumber: s.testSetNumber,
+          date: s.completedAt || s.startedAt,
+          status: s.status === 'graded' ? 'grading' : s.status, // If it's graded in session but no result row yet, it's effectively grading/finishing
+          isPending: true
+        });
+      }
+    });
+
+    // Sort by date descending
+    formattedAttempts.sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
 
     res.json({ attempts: formattedAttempts });
+  } catch (error) {
+    next(error);
+  }
+};
+
+/**
+ * Get per-session submission and grading status
+ */
+export const getResultStatus = async (req: Request, res: Response, next: NextFunction) => {
+  try {
+    const { sessionId } = req.params;
+    const studentId = (req as any).user.id;
+
+    const session = await TestSession.findOne({ _id: sessionId, studentId });
+    if (!session) {
+      return res.status(404).json({ error: 'Session not found' });
+    }
+
+    const selectedModules = session.selectedModules || ['writing', 'speaking'];
+    const [totalWritingTasks, totalSpeakingTasks, readingTask, listeningTask] = await Promise.all([
+      WritingQuestion.countDocuments({ testSetNumber: session.testSetNumber }),
+      SpeakingQuestion.countDocuments({ testSetNumber: session.testSetNumber }),
+      QuestionBank.findOne({ module: 'reading', testSetNumber: session.testSetNumber }).select('mcqs'),
+      QuestionBank.findOne({ module: 'listening', testSetNumber: session.testSetNumber }).select('mcqs'),
+    ]);
+
+    const totalReadingTasks = readingTask?.mcqs?.length || 0;
+    const totalListeningTasks = listeningTask?.mcqs?.length || 0;
+    const submittedWriting = selectedModules.includes('writing')
+      ? session.writingResponses.filter((r) => Boolean(r.submittedAt)).length
+      : 0;
+    const submittedSpeaking = selectedModules.includes('speaking') ? session.speakingRecordings.length : 0;
+    const submittedReading = selectedModules.includes('reading')
+      ? session.mcqResponses.filter((r: any) => r.module === 'reading').length
+      : 0;
+    const submittedListening = selectedModules.includes('listening')
+      ? session.mcqResponses.filter((r: any) => r.module === 'listening').length
+      : 0;
+    const gradedWriting = session.writingResponses.filter((r) => (r.aiBand || 0) > 0).length;
+    const gradedSpeaking = session.speakingRecordings.filter((r) => (r.aiBand || 0) > 0).length;
+    const gradedReading = submittedReading > 0 ? totalReadingTasks : 0;
+    const gradedListening = submittedListening > 0 ? totalListeningTasks : 0;
+
+    const expectedWriting = selectedModules.includes('writing') ? totalWritingTasks : 0;
+    const expectedSpeaking = selectedModules.includes('speaking') ? totalSpeakingTasks : 0;
+    const expectedReading = selectedModules.includes('reading') ? totalReadingTasks : 0;
+    const expectedListening = selectedModules.includes('listening') ? totalListeningTasks : 0;
+    const totalSubmitted = submittedWriting + submittedSpeaking + submittedReading + submittedListening;
+    const totalExpected = expectedWriting + expectedSpeaking + expectedReading + expectedListening;
+    const totalGraded = gradedWriting + gradedSpeaking + gradedReading + gradedListening;
+
+    let status: 'in_progress' | 'submitted' | 'grading' | 'graded' = 'in_progress';
+    if (session.status === 'graded') {
+      status = 'graded';
+    } else if (totalSubmitted >= totalExpected && totalExpected > 0) {
+      status = totalGraded >= totalExpected ? 'graded' : 'grading';
+    } else if (session.status === 'submitted') {
+      status = 'submitted';
+    }
+
+    return res.json({
+      sessionId: session._id,
+      mode: session.mode || 'practice',
+      selectedModules,
+      instructionsAccepted: Boolean(session.instructionsAccepted),
+      endedEarly: Boolean((session as { endedEarly?: boolean }).endedEarly),
+      status,
+      progress: {
+        writing: { submitted: submittedWriting, graded: gradedWriting, total: expectedWriting },
+        speaking: { submitted: submittedSpeaking, graded: gradedSpeaking, total: expectedSpeaking },
+        reading: { submitted: submittedReading, graded: gradedReading, total: expectedReading },
+        listening: { submitted: submittedListening, graded: gradedListening, total: expectedListening },
+        overall: { submitted: totalSubmitted, graded: totalGraded, total: totalExpected },
+      },
+      submittedAt: session.completedAt || null,
+      startedAt: session.startedAt,
+    });
   } catch (error) {
     next(error);
   }
@@ -63,26 +375,86 @@ export const startTest = async (req: Request, res: Response, next: NextFunction)
   try {
     const { testSetNumber } = req.params;
     const studentId = (req as any).user.id;
+    const {
+      mode = 'practice',
+      selectedModules = ['writing', 'speaking'],
+      forceNewSession = false,
+    } = req.body as {
+      mode?: 'practice' | 'simulation';
+      selectedModules?: ('listening' | 'reading' | 'writing' | 'speaking')[];
+      forceNewSession?: boolean;
+    };
+
+    const allowedModes = ['practice', 'simulation'];
+    if (!allowedModes.includes(mode)) {
+      return res.status(400).json({ error: 'Invalid mode. Use practice or simulation.' });
+    }
+    const testSet = await TestSet.findOne({
+      testSetNumber: Number(testSetNumber),
+      status: 'published',
+    });
+    if (!testSet) {
+      return res.status(404).json({ error: 'Published test set not found' });
+    }
+    const validModules = ['listening', 'reading', 'writing', 'speaking'];
+    const sanitizedModules = (selectedModules || [])
+      .filter((m) => validModules.includes(m))
+      .filter((m) => testSet.modules.includes(m));
+    if (!sanitizedModules.length) {
+      return res.status(400).json({ error: 'At least one valid module is required.' });
+    }
 
     // Check for existing in-progress session for this student and set
     let session = await TestSession.findOne({
       studentId,
       testSetNumber: Number(testSetNumber),
-      status: 'in_progress'
+      status: 'in_progress',
     });
 
+    if (forceNewSession) {
+      await closeInProgressSessionsForStudent(studentId, {
+        testSetNumber: Number(testSetNumber),
+      });
+      session = null;
+    }
+
     if (session) {
-      return res.json({ 
-        success: true, 
-        message: 'Resuming existing session', 
-        sessionId: session._id 
+      // User may have changed module/mode on the setup screen; the old session
+      // still had the previous selection. Apply the new choice until they confirm instructions.
+      if (!session.instructionsAccepted) {
+        session.mode = mode;
+        session.selectedModules = sanitizedModules;
+        await session.save();
+        return res.json({
+          success: true,
+          message: 'Session updated',
+          sessionId: session._id,
+          mode: session.mode,
+          selectedModules: session.selectedModules,
+        });
+      }
+
+      return res.json({
+        success: true,
+        message: 'Ongoing session found',
+        sessionId: session._id,
+        mode: session.mode || 'practice',
+        selectedModules: session.selectedModules || ['writing', 'speaking'],
+        hasOngoingSession: true,
       });
     }
+
+    // New attempt on this set — auto-end any other in-progress sessions (other sets or abandoned runs)
+    await closeInProgressSessionsForStudent(studentId);
 
     // Create new session
     session = new TestSession({
       studentId,
       testSetNumber: Number(testSetNumber),
+      mode,
+      selectedModules: sanitizedModules,
+      instructionsAccepted: false,
+      purgeAt: new Date(Date.now() + 2 * 24 * 60 * 60 * 1000), // 48h retention
       status: 'in_progress',
       startedAt: new Date()
     });
@@ -92,7 +464,260 @@ export const startTest = async (req: Request, res: Response, next: NextFunction)
     res.status(201).json({ 
       success: true, 
       message: 'Test session started', 
-      sessionId: session._id 
+      sessionId: session._id,
+      mode: session.mode,
+      selectedModules: session.selectedModules,
+      hasOngoingSession: false,
+    });
+  } catch (error) {
+    next(error);
+  }
+};
+
+/**
+ * End an in-progress test early: mark session submitted, stop queued AI grading.
+ */
+export const endTestSession = async (req: Request, res: Response, next: NextFunction) => {
+  try {
+    const { sessionId } = req.params;
+    const studentId = (req as any).user.id;
+
+    const session = await TestSession.findOne({
+      _id: sessionId,
+      studentId,
+      status: { $in: ['in_progress', 'submitted'] },
+    });
+
+    if (!session) {
+      return res.status(404).json({ error: 'Test session not found or already closed' });
+    }
+
+    if (session.status === 'in_progress') {
+      session.status = 'submitted';
+      session.completedAt = new Date();
+    }
+    (session as { endedEarly?: boolean }).endedEarly = true;
+    await session.save();
+
+    const cancelledJobs = await cancelGradingJobsForSession(String(session._id));
+
+    logger.info(
+      `Student ${studentId} ended test session ${sessionId} early; cancelled ${cancelledJobs} grading job(s)`,
+    );
+
+    return res.json({
+      success: true,
+      sessionId: session._id,
+      status: session.status,
+      endedEarly: true,
+      cancelledGradingJobs: cancelledJobs,
+      message: 'Test ended. Background AI grading has been stopped for this session.',
+    });
+  } catch (error) {
+    next(error);
+  }
+};
+
+/**
+ * Confirm pre-test instructions for a session
+ */
+export const confirmInstructions = async (req: Request, res: Response, next: NextFunction) => {
+  try {
+    const { sessionId } = req.params;
+    const studentId = (req as any).user.id;
+
+    const session = await TestSession.findOneAndUpdate(
+      { _id: sessionId, studentId, status: 'in_progress' },
+      { $set: { instructionsAccepted: true } },
+      { new: true },
+    );
+
+    if (!session) return res.status(404).json({ error: 'Session not found' });
+
+    return res.json({
+      success: true,
+      sessionId: session._id,
+      instructionsAccepted: Boolean(session.instructionsAccepted),
+    });
+  } catch (error) {
+    next(error);
+  }
+};
+
+/**
+ * Get test instructions by mode for a specific set
+ */
+export const getTestInstructions = async (req: Request, res: Response, next: NextFunction) => {
+  try {
+    const { testSetNumber } = req.params;
+    const { mode = 'practice' } = req.query as { mode?: 'practice' | 'simulation' };
+
+    const testSet = await TestSet.findOne({
+      testSetNumber: Number(testSetNumber),
+      status: 'published',
+    });
+    if (!testSet) return res.status(404).json({ error: 'Published test set not found' });
+
+    const instructions =
+      mode === 'simulation'
+        ? testSet.instructions?.simulation || ''
+        : testSet.instructions?.practice || '';
+
+    return res.json({
+      testSetNumber: testSet.testSetNumber,
+      mode,
+      instructions,
+      modules: testSet.modules,
+      estimatedTimeMinutes: testSet.estimatedTimeMinutes,
+    });
+  } catch (error) {
+    next(error);
+  }
+};
+
+/**
+ * Record media runtime interaction and enforce backend media policy
+ */
+export const recordMediaRuntimeEvent = async (req: Request, res: Response, next: NextFunction) => {
+  try {
+    const studentId = (req as any).user.id;
+    const {
+      sessionId,
+      module,
+      taskNumber = 1,
+      eventType,
+      subTask: bodySub,
+    } = req.body as {
+      sessionId?: string;
+      module?: 'listening' | 'reading' | 'writing' | 'speaking';
+      taskNumber?: number;
+      subTask?: 'A' | 'B';
+      eventType?: 'play_start' | 'replay_attempt' | 'seek_attempt';
+    };
+
+    if (!sessionId || !module || !eventType) {
+      return res.status(400).json({ error: 'sessionId, module and eventType are required' });
+    }
+    if (!['play_start', 'replay_attempt', 'seek_attempt'].includes(eventType)) {
+      return res.status(400).json({ error: 'Invalid eventType' });
+    }
+
+    const session = await TestSession.findOne({ _id: sessionId, studentId, status: 'in_progress' });
+    if (!session) return res.status(404).json({ error: 'Session not found' });
+    if (!session.instructionsAccepted) {
+      return res.status(403).json({ error: 'Instructions must be accepted before starting the test' });
+    }
+    const selectedModules = session.selectedModules || ['writing', 'speaking'];
+    if (!selectedModules.includes(module)) {
+      return res.status(403).json({ error: `${module} module is not enabled for this session` });
+    }
+
+    const tn = Number(taskNumber);
+    const speakingSub: 'A' | 'B' | null =
+      module === 'speaking' && tn === 5 ? (bodySub === 'B' ? 'B' : 'A') : null;
+    const question: any =
+      module === 'writing'
+        ? await WritingQuestion.findOne({
+            testSetNumber: Number(session.testSetNumber),
+            taskNumber: tn,
+          })
+        : module === 'speaking'
+        ? await SpeakingQuestion.findOne({
+            testSetNumber: Number(session.testSetNumber),
+            taskNumber: tn,
+            subTask: speakingSub,
+          })
+        : await QuestionBank.findOne({
+            module,
+            testSetNumber: Number(session.testSetNumber),
+          });
+    if (!question) return res.status(404).json({ error: 'Question not found for runtime policy check' });
+
+    const hasMedia =
+      question.mediaType !== 'none' ||
+      Boolean(question.mediaUrl) ||
+      Boolean(question.audioUrl) ||
+      Boolean(question.instructionVideoUrl);
+    if (!hasMedia) {
+      return res.status(400).json({ error: 'No media configured for this task/module' });
+    }
+
+    const effectivePolicy = computeEffectiveMediaPolicy(session.mode || 'practice', {
+      allowReplay: question.allowReplay,
+      allowSeek: question.allowSeek,
+      playLimit: question.playLimit,
+    });
+    const runtimeRows = ((session as any).mediaRuntime || []) as Array<{
+      module: string;
+      taskNumber: number;
+      subTask?: string | null;
+      playCount?: number;
+      seekCount?: number;
+      blockedCount?: number;
+      lastEventAt?: Date;
+    }>;
+    const runtimeIndex = runtimeRows.findIndex((r) => {
+      if (r.module !== module || Number(r.taskNumber || 1) !== tn) return false;
+      if (module === 'speaking' && tn === 5) {
+        return (r.subTask || 'A') === (speakingSub || 'A');
+      }
+      return !r.subTask;
+    });
+    const current =
+      runtimeIndex >= 0
+        ? runtimeRows[runtimeIndex]
+        : {
+            module,
+            taskNumber: tn,
+            subTask: module === 'speaking' && tn === 5 ? speakingSub : null,
+            playCount: 0,
+            seekCount: 0,
+            blockedCount: 0,
+          };
+
+    let allowed = true;
+    let reason = 'ok';
+    const playCount = Number(current.playCount || 0);
+    const seekCount = Number(current.seekCount || 0);
+    const blockedCount = Number(current.blockedCount || 0);
+
+    if (eventType === 'seek_attempt' && !effectivePolicy.allowSeek) {
+      allowed = false;
+      reason = 'seek_disabled';
+    }
+    if ((eventType === 'play_start' || eventType === 'replay_attempt') && !effectivePolicy.allowReplay && playCount >= 1) {
+      allowed = false;
+      reason = 'replay_disabled';
+    }
+    if ((eventType === 'play_start' || eventType === 'replay_attempt') && effectivePolicy.playLimit > 0 && playCount >= effectivePolicy.playLimit) {
+      allowed = false;
+      reason = 'play_limit_exceeded';
+    }
+
+    const nextState = {
+      module,
+      taskNumber: tn,
+      subTask: module === 'speaking' && tn === 5 ? speakingSub : null,
+      playCount: playCount + (allowed && eventType === 'play_start' ? 1 : 0),
+      seekCount: seekCount + (eventType === 'seek_attempt' ? 1 : 0),
+      blockedCount: blockedCount + (allowed ? 0 : 1),
+      lastEventAt: new Date(),
+    };
+
+    if (runtimeIndex >= 0) {
+      runtimeRows[runtimeIndex] = nextState as any;
+    } else {
+      runtimeRows.push(nextState as any);
+    }
+    (session as any).mediaRuntime = runtimeRows;
+    await session.save();
+
+    return res.json({
+      success: true,
+      allowed,
+      reason,
+      policy: effectivePolicy,
+      runtimeState: nextState,
     });
   } catch (error) {
     next(error);
@@ -127,6 +752,112 @@ export const getCertificate = async (req: Request, res: Response, next: NextFunc
 
     // Stream the PDF
     generateCertificate(res, certificateData);
+  } catch (error) {
+    next(error);
+  }
+};
+
+/**
+ * Download full task-wise AI writing report as PDF
+ */
+export const getAiEvaluationReport = async (req: Request, res: Response, next: NextFunction) => {
+  try {
+    const { testSetNumber } = req.params;
+    const student = (req as any).user;
+    const studentId = student.id;
+    const tn = Number(testSetNumber);
+    const sessionIdQs = typeof req.query.sessionId === 'string' ? req.query.sessionId.trim() : '';
+
+    let session: any = null;
+    let result: any = null;
+
+    if (sessionIdQs && mongoose.Types.ObjectId.isValid(sessionIdQs)) {
+      session = await TestSession.findOne({
+        _id: new mongoose.Types.ObjectId(sessionIdQs),
+        studentId,
+        testSetNumber: tn,
+      }).select('writingResponses');
+      if (session) {
+        result = await TestResult.findOne({ studentId, testSessionId: session._id });
+      }
+    }
+
+    if (!session) {
+      result = await TestResult.findOne({ studentId, testSetNumber: tn }).sort({ createdAt: -1 });
+      if (!result?.testSessionId) {
+        return res.status(404).json({ error: 'Result not ready for PDF report yet' });
+      }
+      session = await TestSession.findById(result.testSessionId).select('writingResponses');
+    }
+
+    if (!session) return res.status(404).json({ error: 'Session not found for AI report' });
+
+    const writingRows = Array.isArray(session.writingResponses) ? session.writingResponses : [];
+    const tasks = writingRows
+      .map((r: any) => ({
+        taskNumber: Number(r.taskNumber || 0),
+        responseText: String(r.responseText || ''),
+        wordCount: typeof r.wordCount === 'number' ? r.wordCount : undefined,
+        overallBand: r.aiBand,
+        coherence: r.aiAnalysis?.coherence,
+        vocabulary: r.aiAnalysis?.vocabulary,
+        readability: r.aiAnalysis?.readability,
+        taskFulfillment: r.aiAnalysis?.taskFulfillment,
+        taskAchievement: r.aiAnalysis?.taskAchievement,
+        coherenceCohesion: r.aiAnalysis?.coherenceCohesion,
+        lexicalResource: r.aiAnalysis?.lexicalResource,
+        grammar: r.aiAnalysis?.grammar,
+        overallRemark: String(r.aiAnalysis?.overallRemark || ''),
+        detailedFeedback: String(r.aiAnalysis?.detailedFeedback || ''),
+        categoryBullets: r.aiAnalysis?.categoryBullets || undefined,
+        strengths: Array.isArray(r.aiAnalysis?.strengths) ? r.aiAnalysis.strengths : [],
+        improvements: Array.isArray(r.aiAnalysis?.improvements) ? r.aiAnalysis.improvements : [],
+        quickTips: Array.isArray(r.aiAnalysis?.quickTips) ? r.aiAnalysis.quickTips : [],
+        lineFeedback: Array.isArray(r.aiAnalysis?.lineFeedback) ? r.aiAnalysis.lineFeedback : [],
+        modelAnswer: String(r.aiAnalysis?.modelAnswer || ''),
+      }))
+      .filter((r: any) => Number.isFinite(r.taskNumber) && r.taskNumber > 0)
+      .sort((a: any, b: any) => a.taskNumber - b.taskNumber);
+
+    const studentName = `${student.firstName || ''} ${student.lastName || ''}`.trim() || 'Student';
+    const generatedAt = new Date().toLocaleString();
+
+    res.setHeader('Content-Type', 'application/pdf');
+    res.setHeader(
+      'Content-Disposition',
+      `attachment; filename=LetsCrack_AI_Report_Set${tn}_${studentName.replace(/\s+/g, '_')}.pdf`,
+    );
+
+    generateAiEvaluationReport(res, {
+      studentName,
+      testSetNumber: tn,
+      generatedAt,
+      overallBand: result?.overallBand,
+      writingBand: result?.writingBand?.finalBand,
+      tasks,
+    });
+  } catch (error) {
+    next(error);
+  }
+};
+
+/**
+ * Get all available test sets for the library
+ */
+export const getAvailableTests = async (req: Request, res: Response, next: NextFunction) => {
+  try {
+    const publishedSets = await TestSet.find({ status: 'published' }).sort({ testSetNumber: 1 });
+    const enrichedSets = publishedSets.map((set) => ({
+      testSetNumber: set.testSetNumber,
+      title: set.title,
+      description: set.description,
+      moduleCount: set.modules.length,
+      supportedModes: set.modeSupport,
+      estimatedTime: `${set.estimatedTimeMinutes} minutes`,
+      modules: set.modules,
+    }));
+
+    res.json({ testSets: enrichedSets });
   } catch (error) {
     next(error);
   }

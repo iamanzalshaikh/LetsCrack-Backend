@@ -20,10 +20,10 @@ const testWritingGrading = async () => {
 
   try {
     console.log('Sending Writing response to Gemini...');
-    const result = await gradeWritingTask(sampleResponse, samplePrompt);
+    const result = await gradeWritingTask(sampleResponse, samplePrompt, 1);
     
     console.log('\n--- AI WRITING GRADING RESULT ---');
-    console.log('Predicted Band:', result.aiBand);
+    console.log('Predicted Band (/6):', result.aiBand ?? result.overallBand);
     console.log('Feedback:', result.analysis.feedback);
     console.log('Breakdown:', JSON.stringify(result.analysis, null, 2));
     

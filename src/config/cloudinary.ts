@@ -11,13 +11,20 @@ cloudinary.config({
 
 const uploadOnCloudinary = async (
   fileBuffer: Buffer,
-  folder: string = "lce-test-recordings"
+  options: { folder?: string; resource_type?: 'auto' | 'video' | 'image' | 'raw' } = {},
 ): Promise<string | null> => {
+  const { folder = 'lce-test-recordings', resource_type = 'auto' } = options;
+
+  if (!fileBuffer || fileBuffer.length === 0) {
+    logger.error('Cloudinary Upload Error: File buffer is empty');
+    return null;
+  }
+
   return new Promise((resolve) => {
     const uploadStream = cloudinary.uploader.upload_stream(
       {
         folder,
-        resource_type: "auto",
+        resource_type,
       },
       (error, result) => {
         if (error) {
@@ -28,7 +35,7 @@ const uploadOnCloudinary = async (
           return resolve(result.secure_url);
         }
         return resolve(null);
-      }
+      },
     );
 
     streamifier.createReadStream(fileBuffer).pipe(uploadStream);

@@ -11,6 +11,12 @@ const QuestionBankSchema = new mongoose.Schema({
     sampleResponse: String,
     // Speaking Task specific
     prompt: String,
+    mediaType: { type: String, enum: ['none', 'audio', 'video', 'image'], default: 'none' },
+    mediaUrl: String,
+    instructionVideoUrl: String,
+    allowReplay: { type: Boolean, default: true },
+    allowSeek: { type: Boolean, default: true },
+    playLimit: { type: Number, default: 0 }, // 0 => unlimited
     imageUrl: String,
     prepTime: Number,
     speakingTime: Number,

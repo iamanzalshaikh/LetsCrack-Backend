@@ -1,13 +1,24 @@
 import { Request, Response, NextFunction } from 'express';
-import jwt from 'jsonwebtoken';
+import jwt, { SignOptions, Secret } from 'jsonwebtoken';
 import bcrypt from 'bcryptjs';
 import User from '../models/User.js';
 import { env } from '../config/env.js';
 import logger from '../utils/logger.js';
 
+const JWT_SECRET: Secret = env.JWT_ACCESS_SECRET;
+const JWT_EXPIRES_IN = env.JWT_EXPIRE as SignOptions['expiresIn'];
+
 export const register = async (req: Request, res: Response, next: NextFunction) => {
   try {
-    const { email, password, firstName, lastName, country } = req.body;
+    const email = typeof req.body?.email === 'string' ? req.body.email.trim().toLowerCase() : '';
+    const password = typeof req.body?.password === 'string' ? req.body.password : '';
+    const firstName = typeof req.body?.firstName === 'string' ? req.body.firstName.trim() : '';
+    const lastName = typeof req.body?.lastName === 'string' ? req.body.lastName.trim() : '';
+    const country = typeof req.body?.country === 'string' ? req.body.country.trim() : undefined;
+
+    if (!email || !password) {
+      return res.status(400).json({ error: 'Email and password are required' });
+    }
 
     // Check if user already exists
     const existingUser = await User.findOne({ email });
@@ -21,14 +32,22 @@ export const register = async (req: Request, res: Response, next: NextFunction) 
       password,
       firstName,
       lastName,
-      country
+      country,
     });
 
-    await user.save();
+    try {
+      await user.save();
+    } catch (saveErr: unknown) {
+      const e = saveErr as { code?: number };
+      if (e?.code === 11000) {
+        return res.status(409).json({ error: 'User with this email already exists' });
+      }
+      throw saveErr;
+    }
 
     // Generate token
-    const token = jwt.sign({ id: user._id, role: user.role }, env.JWT_ACCESS_SECRET, {
-      expiresIn: env.JWT_EXPIRE
+    const token = jwt.sign({ id: user._id.toString(), role: user.role }, JWT_SECRET, {
+      expiresIn: JWT_EXPIRES_IN,
     });
 
     res.status(201).json({
@@ -49,7 +68,12 @@ export const register = async (req: Request, res: Response, next: NextFunction) 
 
 export const login = async (req: Request, res: Response, next: NextFunction) => {
   try {
-    const { email, password } = req.body;
+    const email = typeof req.body?.email === 'string' ? req.body.email.trim().toLowerCase() : '';
+    const password = typeof req.body?.password === 'string' ? req.body.password : '';
+
+    if (!email || !password) {
+      return res.status(400).json({ error: 'Email and password are required' });
+    }
 
     // Find user
     const user = await User.findOne({ email });
@@ -68,8 +92,8 @@ export const login = async (req: Request, res: Response, next: NextFunction) => 
     await user.save();
 
     // Generate token
-    const token = jwt.sign({ id: user._id, role: user.role }, env.JWT_ACCESS_SECRET, {
-      expiresIn: env.JWT_EXPIRE
+    const token = jwt.sign({ id: user._id.toString(), role: user.role }, JWT_SECRET, {
+      expiresIn: JWT_EXPIRES_IN
     });
 
     // Set cookie

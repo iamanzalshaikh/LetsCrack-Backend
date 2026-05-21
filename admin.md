@@ -15,6 +15,7 @@ The first screen the admin sees after a successful login.
 *   **Action**: Sidebar navigation to access User Management, Question Bank, and Results.
 
 ---
+---
 
 ## 👥 2. USER ADMINISTRATION
 Managing the people on the platform.

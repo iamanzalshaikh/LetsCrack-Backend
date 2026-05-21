@@ -19,6 +19,18 @@ const TestResultSchema = new mongoose.Schema({
             }],
         finalBand: String
     },
+    readingBand: {
+        score: Number,
+        total: Number,
+        percentage: Number,
+        finalBand: String,
+    },
+    listeningBand: {
+        score: Number,
+        total: Number,
+        percentage: Number,
+        finalBand: String,
+    },
     overallBand: String,
     examinerAssigned: { type: mongoose.Schema.Types.ObjectId, ref: 'User' },
     scoredAt: Date,

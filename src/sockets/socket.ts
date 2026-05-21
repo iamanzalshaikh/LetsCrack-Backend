@@ -4,10 +4,26 @@ import logger from '../utils/logger.js';
 import jwt from 'jsonwebtoken';
 import { env } from '../config/env.js';
 
+/** Must match Express `app.ts` — Engine.IO polling bypasses the Express `cors()` middleware. */
+function socketAllowedOrigins(): string[] {
+  return Array.from(
+    new Set(
+      [
+        'http://localhost:5173',
+        'http://localhost:5174',
+        'http://127.0.0.1:5173',
+        'http://127.0.0.1:5174',
+        env.CORS_ORIGIN,
+        env.FRONTEND_URL,
+      ].filter((o): o is string => typeof o === 'string' && o.length > 0),
+    ),
+  );
+}
+
 export const setupSocket = (httpServer: HttpServer) => {
   const io = new Server(httpServer, {
     cors: {
-      origin: [env.CORS_ORIGIN],
+      origin: socketAllowedOrigins(),
       methods: ['GET', 'POST'],
       credentials: true,
     },

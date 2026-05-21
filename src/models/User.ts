@@ -16,11 +16,14 @@ const UserSchema = new mongoose.Schema({
   lastLoginAt: Date
 });
 
-// Hash password before save
-UserSchema.pre('save', async function(next) {
-  if (!this.isModified('password')) return next();
-  this.password = await bcrypt.hash(this.password, 10);
-  next();
+// Hash password before save (Mongoose 8+: async hooks should not mix with next().)
+UserSchema.pre('save', async function hashPasswordBeforeSave() {
+  if (!this.isModified('password')) return;
+  const plain = this.get('password') as string | undefined;
+  if (typeof plain !== 'string' || !plain) {
+    throw new Error('Password is required');
+  }
+  this.set('password', await bcrypt.hash(plain, 10));
 });
 
 

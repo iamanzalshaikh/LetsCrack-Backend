@@ -7,7 +7,6 @@ import swaggerUi from 'swagger-ui-express';
 import { env } from './config/env.js';
 import { swaggerSpec } from './docs/swagger.js';
 import { errorHandler } from './middlewares/error.middleware.js';
-import { apiLimiter } from './middlewares/rateLimit.middleware.js';
 import authRoutes from './routes/auth.js';
 import writingRoutes from './routes/writing.js';
 import speakingRoutes from './routes/speaking.js';
@@ -15,19 +14,35 @@ import examinerRoutes from './routes/examiner.js';
 import adminRoutes from './routes/admin.js';
 import studentRoutes from './routes/student.js';
 import mcqRoutes from './routes/mcq.js';
+import logger from './utils/logger.js';
 const app = express();
 // Middlewares
 app.use(helmet());
+const localDevOrigins = new Set([
+    'http://localhost:5173',
+    'http://localhost:5174',
+    'http://127.0.0.1:5173',
+    'http://127.0.0.1:5174',
+]);
+const configuredOrigins = new Set([env.CORS_ORIGIN, env.FRONTEND_URL].filter(Boolean));
 app.use(cors({
-    origin: [env.CORS_ORIGIN, env.FRONTEND_URL],
+    origin: (origin, callback) => {
+        // Allow non-browser clients and same-origin server calls.
+        if (!origin)
+            return callback(null, true);
+        if (configuredOrigins.has(origin) || localDevOrigins.has(origin)) {
+            return callback(null, true);
+        }
+        return callback(new Error(`CORS blocked for origin: ${origin}`));
+    },
     credentials: true,
 }));
 app.use(morgan(env.NODE_ENV === 'development' ? 'dev' : 'combined'));
 app.use(express.json({ limit: '50mb' }));
 app.use(express.urlencoded({ extended: true, limit: '50mb' }));
 app.use(cookieParser());
-// Rate Limiter
-app.use('/api', apiLimiter);
+// Rate Limiter disabled temporarily.
+logger.warn('API rate limiter is temporarily disabled');
 // Swagger Documentation
 app.use('/api-docs', swaggerUi.serve, swaggerUi.setup(swaggerSpec));
 // API Routes

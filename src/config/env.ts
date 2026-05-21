@@ -20,10 +20,6 @@ export const env = cleanEnv(process.env, {
   CLOUDINARY_CLOUD_NAME: str({ default: '' }),
   CLOUDINARY_API_KEY: str({ default: '' }),
   CLOUDINARY_API_SECRET: str({ default: '' }),
-  AWS_ACCESS_KEY_ID: str({ default: '' }),
-  AWS_SECRET_ACCESS_KEY: str({ default: '' }),
-  AWS_REGION: str({ default: 'us-east-1' }),
-  AWS_S3_BUCKET_NAME: str({ default: '' }),
   // URLs
   FRONTEND_URL: url({ default: 'http://localhost:3000' }),
   CORS_ORIGIN: str({ default: 'http://localhost:3000' }),

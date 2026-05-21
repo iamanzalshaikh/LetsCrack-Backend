@@ -7,10 +7,12 @@ const connectDB = async () => {
     const conn = await mongoose.connect(env.MONGO_URL);
     logger.info(`MongoDB Connected: ${conn.connection.host}`);
   } catch (error) {
-    if (error instanceof Error) {
-      logger.error(`Error: ${error.message}`);
-    } else {
-      logger.error('An unknown error occurred during MongoDB connection.');
+    const message = error instanceof Error ? error.message : 'Unknown MongoDB connection error.';
+    logger.error(`MongoDB connection failed: ${message}`);
+    if (message.includes('ECONNREFUSED')) {
+      logger.error(
+        'No MongoDB at this URL (connection refused). Start local MongoDB (port 27017) or point MONGO_URL in .env to MongoDB Atlas / your cluster.',
+      );
     }
     process.exit(1);
   }

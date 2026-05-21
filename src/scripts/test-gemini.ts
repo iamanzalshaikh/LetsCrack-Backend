@@ -8,7 +8,7 @@ dotenv.config();
 const testAiGrading = async () => {
   console.log('--- Starting Gemini AI Grading Test ---');
   
-  // Use a public sample audio or one from your S3 if you have one.
+  // Use a public sample audio from any public host (for example Cloudinary).
   // This is a sample MP3 link for testing.
   const sampleAudioUrl = 'https://www.soundhelix.com/examples/mp3/SoundHelix-Song-1.mp3';
   const samplePrompt = 'Tell me about your favorite childhood memory.';

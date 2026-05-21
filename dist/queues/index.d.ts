@@ -1,7 +1,8 @@
-import { Queue, Worker } from 'bullmq';
+import { Queue, Worker, QueueEvents } from 'bullmq';
 export declare const notificationQueue: Queue<any, any, string, any, any, string>;
 export declare const notificationWorker: Worker<any, any, string>;
 export declare const gradingQueue: Queue<any, any, string, any, any, string>;
+export declare const gradingQueueEvents: QueueEvents;
 export declare const gradingWorker: Worker<any, any, string>;
 declare const _default: {
     gradingQueue: Queue<any, any, string, any, any, string>;

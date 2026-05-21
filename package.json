@@ -16,7 +16,6 @@
     "db:studio": "prisma studio"
   },
   "dependencies": {
-    "@aws-sdk/client-s3": "^3.958.0",
     "@faker-js/faker": "^10.1.0",
     "@google/generative-ai": "^0.24.1",
     "@prisma/client": "^6.5.0",
@@ -38,7 +37,6 @@
     "mongoose": "^8.23.0",
     "morgan": "^1.10.1",
     "multer": "^2.0.2",
-    "multer-s3": "^3.0.1",
     "node-cron": "^4.2.1",
     "nodemailer": "^7.0.12",
     "pdfkit": "^0.18.0",
@@ -63,11 +61,11 @@
     "@types/jsonwebtoken": "^9.0.10",
     "@types/morgan": "^1.9.10",
     "@types/multer": "^2.0.0",
-    "@types/multer-s3": "^3.0.3",
     "@types/node": "^24.10.4",
     "@types/node-cron": "^3.0.11",
     "@types/nodemailer": "^7.0.4",
     "@types/pdfkit": "^0.17.5",
+    "@types/streamifier": "^0.1.2",
     "@types/swagger-jsdoc": "^6.0.4",
     "@types/swagger-ui-express": "^4.1.8",
     "@types/uuid": "^10.0.0",

@@ -11,16 +11,16 @@ declare const TestResultSchema: mongoose.Schema<any, mongoose.Model<any, any, an
     writingBand?: {
         finalBand?: string | null | undefined;
         task1Scores?: {
+            readability?: number | null | undefined;
             taskFulfillment?: number | null | undefined;
             content?: number | null | undefined;
             vocab?: number | null | undefined;
-            readability?: number | null | undefined;
         } | null | undefined;
         task2Scores?: {
+            readability?: number | null | undefined;
             taskFulfillment?: number | null | undefined;
             content?: number | null | undefined;
             vocab?: number | null | undefined;
-            readability?: number | null | undefined;
         } | null | undefined;
     } | null | undefined;
     speakingBand?: {
@@ -28,25 +28,37 @@ declare const TestResultSchema: mongoose.Schema<any, mongoose.Model<any, any, an
             taskNumber?: number | null | undefined;
             coherence?: number | null | undefined;
             vocabulary?: number | null | undefined;
-            listenability?: number | null | undefined;
             taskFulfillment?: number | null | undefined;
+            listenability?: number | null | undefined;
             examinerFeedback?: string | null | undefined;
         }, mongoose.Types.Subdocument<mongoose.mongo.BSON.ObjectId, any, {
             taskNumber?: number | null | undefined;
             coherence?: number | null | undefined;
             vocabulary?: number | null | undefined;
-            listenability?: number | null | undefined;
             taskFulfillment?: number | null | undefined;
+            listenability?: number | null | undefined;
             examinerFeedback?: string | null | undefined;
         }> & {
             taskNumber?: number | null | undefined;
             coherence?: number | null | undefined;
             vocabulary?: number | null | undefined;
-            listenability?: number | null | undefined;
             taskFulfillment?: number | null | undefined;
+            listenability?: number | null | undefined;
             examinerFeedback?: string | null | undefined;
         }>;
         finalBand?: string | null | undefined;
+    } | null | undefined;
+    readingBand?: {
+        finalBand?: string | null | undefined;
+        score?: number | null | undefined;
+        total?: number | null | undefined;
+        percentage?: number | null | undefined;
+    } | null | undefined;
+    listeningBand?: {
+        finalBand?: string | null | undefined;
+        score?: number | null | undefined;
+        total?: number | null | undefined;
+        percentage?: number | null | undefined;
     } | null | undefined;
     examinerAssigned?: mongoose.Types.ObjectId | null | undefined;
 }, mongoose.Document<unknown, {}, mongoose.FlatRecord<{
@@ -61,16 +73,16 @@ declare const TestResultSchema: mongoose.Schema<any, mongoose.Model<any, any, an
     writingBand?: {
         finalBand?: string | null | undefined;
         task1Scores?: {
+            readability?: number | null | undefined;
             taskFulfillment?: number | null | undefined;
             content?: number | null | undefined;
             vocab?: number | null | undefined;
-            readability?: number | null | undefined;
         } | null | undefined;
         task2Scores?: {
+            readability?: number | null | undefined;
             taskFulfillment?: number | null | undefined;
             content?: number | null | undefined;
             vocab?: number | null | undefined;
-            readability?: number | null | undefined;
         } | null | undefined;
     } | null | undefined;
     speakingBand?: {
@@ -78,25 +90,37 @@ declare const TestResultSchema: mongoose.Schema<any, mongoose.Model<any, any, an
             taskNumber?: number | null | undefined;
             coherence?: number | null | undefined;
             vocabulary?: number | null | undefined;
-            listenability?: number | null | undefined;
             taskFulfillment?: number | null | undefined;
+            listenability?: number | null | undefined;
             examinerFeedback?: string | null | undefined;
         }, mongoose.Types.Subdocument<mongoose.mongo.BSON.ObjectId, any, {
             taskNumber?: number | null | undefined;
             coherence?: number | null | undefined;
             vocabulary?: number | null | undefined;
-            listenability?: number | null | undefined;
             taskFulfillment?: number | null | undefined;
+            listenability?: number | null | undefined;
             examinerFeedback?: string | null | undefined;
         }> & {
             taskNumber?: number | null | undefined;
             coherence?: number | null | undefined;
             vocabulary?: number | null | undefined;
-            listenability?: number | null | undefined;
             taskFulfillment?: number | null | undefined;
+            listenability?: number | null | undefined;
             examinerFeedback?: string | null | undefined;
         }>;
         finalBand?: string | null | undefined;
+    } | null | undefined;
+    readingBand?: {
+        finalBand?: string | null | undefined;
+        score?: number | null | undefined;
+        total?: number | null | undefined;
+        percentage?: number | null | undefined;
+    } | null | undefined;
+    listeningBand?: {
+        finalBand?: string | null | undefined;
+        score?: number | null | undefined;
+        total?: number | null | undefined;
+        percentage?: number | null | undefined;
     } | null | undefined;
     examinerAssigned?: mongoose.Types.ObjectId | null | undefined;
 }>, {}, mongoose.DefaultSchemaOptions> & mongoose.FlatRecord<{
@@ -111,16 +135,16 @@ declare const TestResultSchema: mongoose.Schema<any, mongoose.Model<any, any, an
     writingBand?: {
         finalBand?: string | null | undefined;
         task1Scores?: {
+            readability?: number | null | undefined;
             taskFulfillment?: number | null | undefined;
             content?: number | null | undefined;
             vocab?: number | null | undefined;
-            readability?: number | null | undefined;
         } | null | undefined;
         task2Scores?: {
+            readability?: number | null | undefined;
             taskFulfillment?: number | null | undefined;
             content?: number | null | undefined;
             vocab?: number | null | undefined;
-            readability?: number | null | undefined;
         } | null | undefined;
     } | null | undefined;
     speakingBand?: {
@@ -128,25 +152,37 @@ declare const TestResultSchema: mongoose.Schema<any, mongoose.Model<any, any, an
             taskNumber?: number | null | undefined;
             coherence?: number | null | undefined;
             vocabulary?: number | null | undefined;
-            listenability?: number | null | undefined;
             taskFulfillment?: number | null | undefined;
+            listenability?: number | null | undefined;
             examinerFeedback?: string | null | undefined;
         }, mongoose.Types.Subdocument<mongoose.mongo.BSON.ObjectId, any, {
             taskNumber?: number | null | undefined;
             coherence?: number | null | undefined;
             vocabulary?: number | null | undefined;
-            listenability?: number | null | undefined;
             taskFulfillment?: number | null | undefined;
+            listenability?: number | null | undefined;
             examinerFeedback?: string | null | undefined;
         }> & {
             taskNumber?: number | null | undefined;
             coherence?: number | null | undefined;
             vocabulary?: number | null | undefined;
-            listenability?: number | null | undefined;
             taskFulfillment?: number | null | undefined;
+            listenability?: number | null | undefined;
             examinerFeedback?: string | null | undefined;
         }>;
         finalBand?: string | null | undefined;
+    } | null | undefined;
+    readingBand?: {
+        finalBand?: string | null | undefined;
+        score?: number | null | undefined;
+        total?: number | null | undefined;
+        percentage?: number | null | undefined;
+    } | null | undefined;
+    listeningBand?: {
+        finalBand?: string | null | undefined;
+        score?: number | null | undefined;
+        total?: number | null | undefined;
+        percentage?: number | null | undefined;
     } | null | undefined;
     examinerAssigned?: mongoose.Types.ObjectId | null | undefined;
 }> & {
@@ -166,16 +202,16 @@ declare const TestResult: mongoose.Model<{
     writingBand?: {
         finalBand?: string | null | undefined;
         task1Scores?: {
+            readability?: number | null | undefined;
             taskFulfillment?: number | null | undefined;
             content?: number | null | undefined;
             vocab?: number | null | undefined;
-            readability?: number | null | undefined;
         } | null | undefined;
         task2Scores?: {
+            readability?: number | null | undefined;
             taskFulfillment?: number | null | undefined;
             content?: number | null | undefined;
             vocab?: number | null | undefined;
-            readability?: number | null | undefined;
         } | null | undefined;
     } | null | undefined;
     speakingBand?: {
@@ -183,25 +219,37 @@ declare const TestResult: mongoose.Model<{
             taskNumber?: number | null | undefined;
             coherence?: number | null | undefined;
             vocabulary?: number | null | undefined;
-            listenability?: number | null | undefined;
             taskFulfillment?: number | null | undefined;
+            listenability?: number | null | undefined;
             examinerFeedback?: string | null | undefined;
         }, mongoose.Types.Subdocument<mongoose.mongo.BSON.ObjectId, any, {
             taskNumber?: number | null | undefined;
             coherence?: number | null | undefined;
             vocabulary?: number | null | undefined;
-            listenability?: number | null | undefined;
             taskFulfillment?: number | null | undefined;
+            listenability?: number | null | undefined;
             examinerFeedback?: string | null | undefined;
         }> & {
             taskNumber?: number | null | undefined;
             coherence?: number | null | undefined;
             vocabulary?: number | null | undefined;
-            listenability?: number | null | undefined;
             taskFulfillment?: number | null | undefined;
+            listenability?: number | null | undefined;
             examinerFeedback?: string | null | undefined;
         }>;
         finalBand?: string | null | undefined;
+    } | null | undefined;
+    readingBand?: {
+        finalBand?: string | null | undefined;
+        score?: number | null | undefined;
+        total?: number | null | undefined;
+        percentage?: number | null | undefined;
+    } | null | undefined;
+    listeningBand?: {
+        finalBand?: string | null | undefined;
+        score?: number | null | undefined;
+        total?: number | null | undefined;
+        percentage?: number | null | undefined;
     } | null | undefined;
     examinerAssigned?: mongoose.Types.ObjectId | null | undefined;
 }, {}, {}, {}, mongoose.Document<unknown, {}, {
@@ -216,16 +264,16 @@ declare const TestResult: mongoose.Model<{
     writingBand?: {
         finalBand?: string | null | undefined;
         task1Scores?: {
+            readability?: number | null | undefined;
             taskFulfillment?: number | null | undefined;
             content?: number | null | undefined;
             vocab?: number | null | undefined;
-            readability?: number | null | undefined;
         } | null | undefined;
         task2Scores?: {
+            readability?: number | null | undefined;
             taskFulfillment?: number | null | undefined;
             content?: number | null | undefined;
             vocab?: number | null | undefined;
-            readability?: number | null | undefined;
         } | null | undefined;
     } | null | undefined;
     speakingBand?: {
@@ -233,25 +281,37 @@ declare const TestResult: mongoose.Model<{
             taskNumber?: number | null | undefined;
             coherence?: number | null | undefined;
             vocabulary?: number | null | undefined;
-            listenability?: number | null | undefined;
             taskFulfillment?: number | null | undefined;
+            listenability?: number | null | undefined;
             examinerFeedback?: string | null | undefined;
         }, mongoose.Types.Subdocument<mongoose.mongo.BSON.ObjectId, any, {
             taskNumber?: number | null | undefined;
             coherence?: number | null | undefined;
             vocabulary?: number | null | undefined;
-            listenability?: number | null | undefined;
             taskFulfillment?: number | null | undefined;
+            listenability?: number | null | undefined;
             examinerFeedback?: string | null | undefined;
         }> & {
             taskNumber?: number | null | undefined;
             coherence?: number | null | undefined;
             vocabulary?: number | null | undefined;
-            listenability?: number | null | undefined;
             taskFulfillment?: number | null | undefined;
+            listenability?: number | null | undefined;
             examinerFeedback?: string | null | undefined;
         }>;
         finalBand?: string | null | undefined;
+    } | null | undefined;
+    readingBand?: {
+        finalBand?: string | null | undefined;
+        score?: number | null | undefined;
+        total?: number | null | undefined;
+        percentage?: number | null | undefined;
+    } | null | undefined;
+    listeningBand?: {
+        finalBand?: string | null | undefined;
+        score?: number | null | undefined;
+        total?: number | null | undefined;
+        percentage?: number | null | undefined;
     } | null | undefined;
     examinerAssigned?: mongoose.Types.ObjectId | null | undefined;
 }, {}, mongoose.DefaultSchemaOptions> & {
@@ -266,16 +326,16 @@ declare const TestResult: mongoose.Model<{
     writingBand?: {
         finalBand?: string | null | undefined;
         task1Scores?: {
+            readability?: number | null | undefined;
             taskFulfillment?: number | null | undefined;
             content?: number | null | undefined;
             vocab?: number | null | undefined;
-            readability?: number | null | undefined;
         } | null | undefined;
         task2Scores?: {
+            readability?: number | null | undefined;
             taskFulfillment?: number | null | undefined;
             content?: number | null | undefined;
             vocab?: number | null | undefined;
-            readability?: number | null | undefined;
         } | null | undefined;
     } | null | undefined;
     speakingBand?: {
@@ -283,25 +343,37 @@ declare const TestResult: mongoose.Model<{
             taskNumber?: number | null | undefined;
             coherence?: number | null | undefined;
             vocabulary?: number | null | undefined;
-            listenability?: number | null | undefined;
             taskFulfillment?: number | null | undefined;
+            listenability?: number | null | undefined;
             examinerFeedback?: string | null | undefined;
         }, mongoose.Types.Subdocument<mongoose.mongo.BSON.ObjectId, any, {
             taskNumber?: number | null | undefined;
             coherence?: number | null | undefined;
             vocabulary?: number | null | undefined;
-            listenability?: number | null | undefined;
             taskFulfillment?: number | null | undefined;
+            listenability?: number | null | undefined;
             examinerFeedback?: string | null | undefined;
         }> & {
             taskNumber?: number | null | undefined;
             coherence?: number | null | undefined;
             vocabulary?: number | null | undefined;
-            listenability?: number | null | undefined;
             taskFulfillment?: number | null | undefined;
+            listenability?: number | null | undefined;
             examinerFeedback?: string | null | undefined;
         }>;
         finalBand?: string | null | undefined;
+    } | null | undefined;
+    readingBand?: {
+        finalBand?: string | null | undefined;
+        score?: number | null | undefined;
+        total?: number | null | undefined;
+        percentage?: number | null | undefined;
+    } | null | undefined;
+    listeningBand?: {
+        finalBand?: string | null | undefined;
+        score?: number | null | undefined;
+        total?: number | null | undefined;
+        percentage?: number | null | undefined;
     } | null | undefined;
     examinerAssigned?: mongoose.Types.ObjectId | null | undefined;
 } & {
@@ -320,16 +392,16 @@ declare const TestResult: mongoose.Model<{
     writingBand?: {
         finalBand?: string | null | undefined;
         task1Scores?: {
+            readability?: number | null | undefined;
             taskFulfillment?: number | null | undefined;
             content?: number | null | undefined;
             vocab?: number | null | undefined;
-            readability?: number | null | undefined;
         } | null | undefined;
         task2Scores?: {
+            readability?: number | null | undefined;
             taskFulfillment?: number | null | undefined;
             content?: number | null | undefined;
             vocab?: number | null | undefined;
-            readability?: number | null | undefined;
         } | null | undefined;
     } | null | undefined;
     speakingBand?: {
@@ -337,25 +409,37 @@ declare const TestResult: mongoose.Model<{
             taskNumber?: number | null | undefined;
             coherence?: number | null | undefined;
             vocabulary?: number | null | undefined;
-            listenability?: number | null | undefined;
             taskFulfillment?: number | null | undefined;
+            listenability?: number | null | undefined;
             examinerFeedback?: string | null | undefined;
         }, mongoose.Types.Subdocument<mongoose.mongo.BSON.ObjectId, any, {
             taskNumber?: number | null | undefined;
             coherence?: number | null | undefined;
             vocabulary?: number | null | undefined;
-            listenability?: number | null | undefined;
             taskFulfillment?: number | null | undefined;
+            listenability?: number | null | undefined;
             examinerFeedback?: string | null | undefined;
         }> & {
             taskNumber?: number | null | undefined;
             coherence?: number | null | undefined;
             vocabulary?: number | null | undefined;
-            listenability?: number | null | undefined;
             taskFulfillment?: number | null | undefined;
+            listenability?: number | null | undefined;
             examinerFeedback?: string | null | undefined;
         }>;
         finalBand?: string | null | undefined;
+    } | null | undefined;
+    readingBand?: {
+        finalBand?: string | null | undefined;
+        score?: number | null | undefined;
+        total?: number | null | undefined;
+        percentage?: number | null | undefined;
+    } | null | undefined;
+    listeningBand?: {
+        finalBand?: string | null | undefined;
+        score?: number | null | undefined;
+        total?: number | null | undefined;
+        percentage?: number | null | undefined;
     } | null | undefined;
     examinerAssigned?: mongoose.Types.ObjectId | null | undefined;
 }, mongoose.Document<unknown, {}, mongoose.FlatRecord<{
@@ -370,16 +454,16 @@ declare const TestResult: mongoose.Model<{
     writingBand?: {
         finalBand?: string | null | undefined;
         task1Scores?: {
+            readability?: number | null | undefined;
             taskFulfillment?: number | null | undefined;
             content?: number | null | undefined;
             vocab?: number | null | undefined;
-            readability?: number | null | undefined;
         } | null | undefined;
         task2Scores?: {
+            readability?: number | null | undefined;
             taskFulfillment?: number | null | undefined;
             content?: number | null | undefined;
             vocab?: number | null | undefined;
-            readability?: number | null | undefined;
         } | null | undefined;
     } | null | undefined;
     speakingBand?: {
@@ -387,25 +471,37 @@ declare const TestResult: mongoose.Model<{
             taskNumber?: number | null | undefined;
             coherence?: number | null | undefined;
             vocabulary?: number | null | undefined;
-            listenability?: number | null | undefined;
             taskFulfillment?: number | null | undefined;
+            listenability?: number | null | undefined;
             examinerFeedback?: string | null | undefined;
         }, mongoose.Types.Subdocument<mongoose.mongo.BSON.ObjectId, any, {
             taskNumber?: number | null | undefined;
             coherence?: number | null | undefined;
             vocabulary?: number | null | undefined;
-            listenability?: number | null | undefined;
             taskFulfillment?: number | null | undefined;
+            listenability?: number | null | undefined;
             examinerFeedback?: string | null | undefined;
         }> & {
             taskNumber?: number | null | undefined;
             coherence?: number | null | undefined;
             vocabulary?: number | null | undefined;
-            listenability?: number | null | undefined;
             taskFulfillment?: number | null | undefined;
+            listenability?: number | null | undefined;
             examinerFeedback?: string | null | undefined;
         }>;
         finalBand?: string | null | undefined;
+    } | null | undefined;
+    readingBand?: {
+        finalBand?: string | null | undefined;
+        score?: number | null | undefined;
+        total?: number | null | undefined;
+        percentage?: number | null | undefined;
+    } | null | undefined;
+    listeningBand?: {
+        finalBand?: string | null | undefined;
+        score?: number | null | undefined;
+        total?: number | null | undefined;
+        percentage?: number | null | undefined;
     } | null | undefined;
     examinerAssigned?: mongoose.Types.ObjectId | null | undefined;
 }>, {}, mongoose.DefaultSchemaOptions> & mongoose.FlatRecord<{
@@ -420,16 +516,16 @@ declare const TestResult: mongoose.Model<{
     writingBand?: {
         finalBand?: string | null | undefined;
         task1Scores?: {
+            readability?: number | null | undefined;
             taskFulfillment?: number | null | undefined;
             content?: number | null | undefined;
             vocab?: number | null | undefined;
-            readability?: number | null | undefined;
         } | null | undefined;
         task2Scores?: {
+            readability?: number | null | undefined;
             taskFulfillment?: number | null | undefined;
             content?: number | null | undefined;
             vocab?: number | null | undefined;
-            readability?: number | null | undefined;
         } | null | undefined;
     } | null | undefined;
     speakingBand?: {
@@ -437,25 +533,37 @@ declare const TestResult: mongoose.Model<{
             taskNumber?: number | null | undefined;
             coherence?: number | null | undefined;
             vocabulary?: number | null | undefined;
-            listenability?: number | null | undefined;
             taskFulfillment?: number | null | undefined;
+            listenability?: number | null | undefined;
             examinerFeedback?: string | null | undefined;
         }, mongoose.Types.Subdocument<mongoose.mongo.BSON.ObjectId, any, {
             taskNumber?: number | null | undefined;
             coherence?: number | null | undefined;
             vocabulary?: number | null | undefined;
-            listenability?: number | null | undefined;
             taskFulfillment?: number | null | undefined;
+            listenability?: number | null | undefined;
             examinerFeedback?: string | null | undefined;
         }> & {
             taskNumber?: number | null | undefined;
             coherence?: number | null | undefined;
             vocabulary?: number | null | undefined;
-            listenability?: number | null | undefined;
             taskFulfillment?: number | null | undefined;
+            listenability?: number | null | undefined;
             examinerFeedback?: string | null | undefined;
         }>;
         finalBand?: string | null | undefined;
+    } | null | undefined;
+    readingBand?: {
+        finalBand?: string | null | undefined;
+        score?: number | null | undefined;
+        total?: number | null | undefined;
+        percentage?: number | null | undefined;
+    } | null | undefined;
+    listeningBand?: {
+        finalBand?: string | null | undefined;
+        score?: number | null | undefined;
+        total?: number | null | undefined;
+        percentage?: number | null | undefined;
     } | null | undefined;
     examinerAssigned?: mongoose.Types.ObjectId | null | undefined;
 }> & {
