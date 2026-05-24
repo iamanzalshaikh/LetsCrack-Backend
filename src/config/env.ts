@@ -8,6 +8,8 @@ export const env = cleanEnv(process.env, {
   PORT: port({ default: 5000 }),
   DATABASE_URL: str({ default: '' }),
   MONGO_URL: str(),
+  /** Optional full URL (Render Redis, Upstash, etc.). Takes precedence over host/port when set. */
+  REDIS_URL: str({ default: '' }),
   REDIS_HOST: host({ default: 'localhost' }),
   REDIS_PORT: port({ default: 6379 }),
   // JWT
