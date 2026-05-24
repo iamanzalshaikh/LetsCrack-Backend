@@ -29,12 +29,23 @@ const localDevOrigins = new Set([
 
 const configuredOrigins = new Set([env.CORS_ORIGIN, env.FRONTEND_URL].filter(Boolean));
 
+const isAllowedOrigin = (origin: string): boolean => {
+  if (configuredOrigins.has(origin) || localDevOrigins.has(origin)) return true;
+  try {
+    const host = new URL(origin).hostname;
+    if (host.endsWith('.onrender.com')) return true;
+  } catch {
+    /* ignore malformed origin */
+  }
+  return false;
+};
+
 app.use(
   cors({
     origin: (origin, callback) => {
       // Allow non-browser clients and same-origin server calls.
       if (!origin) return callback(null, true);
-      if (configuredOrigins.has(origin) || localDevOrigins.has(origin)) {
+      if (isAllowedOrigin(origin)) {
         return callback(null, true);
       }
       return callback(new Error(`CORS blocked for origin: ${origin}`));
