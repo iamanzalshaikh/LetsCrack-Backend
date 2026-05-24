@@ -8,7 +8,8 @@ export async function uploadStudentSpeakingAudio(fileBuffer, studentId, testSetN
     const part = taskNumber === 5 && (subTask === "A" || subTask === "B") ? `-${subTask.toLowerCase()}` : "";
     const safeId = String(studentId).replace(/[^a-zA-Z0-9-]/g, "");
     const folder = `lce-student-recordings/${safeId}/set-${testSetNumber}/task-${taskNumber}${part}`;
-    const url = await uploadOnCloudinary(fileBuffer, folder);
+    // WebM audio files must be uploaded with resource_type: 'video' in Cloudinary
+    const url = await uploadOnCloudinary(fileBuffer, { folder, resource_type: "video" });
     if (!url) {
         throw new Error("Failed to upload audio to Cloudinary");
     }

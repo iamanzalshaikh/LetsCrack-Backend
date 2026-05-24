@@ -3,9 +3,9 @@ declare const TestResultSchema: mongoose.Schema<any, mongoose.Model<any, any, an
     createdAt: NativeDate;
     studentId: mongoose.Types.ObjectId;
     testSetNumber?: number | null | undefined;
+    publishedAt?: NativeDate | null | undefined;
     overallBand?: string | null | undefined;
     scoredAt?: NativeDate | null | undefined;
-    publishedAt?: NativeDate | null | undefined;
     certificateUrl?: string | null | undefined;
     testSessionId?: mongoose.Types.ObjectId | null | undefined;
     writingBand?: {
@@ -29,6 +29,7 @@ declare const TestResultSchema: mongoose.Schema<any, mongoose.Model<any, any, an
             coherence?: number | null | undefined;
             vocabulary?: number | null | undefined;
             taskFulfillment?: number | null | undefined;
+            modelAnswer?: string | null | undefined;
             listenability?: number | null | undefined;
             examinerFeedback?: string | null | undefined;
         }, mongoose.Types.Subdocument<mongoose.mongo.BSON.ObjectId, any, {
@@ -36,6 +37,7 @@ declare const TestResultSchema: mongoose.Schema<any, mongoose.Model<any, any, an
             coherence?: number | null | undefined;
             vocabulary?: number | null | undefined;
             taskFulfillment?: number | null | undefined;
+            modelAnswer?: string | null | undefined;
             listenability?: number | null | undefined;
             examinerFeedback?: string | null | undefined;
         }> & {
@@ -43,6 +45,7 @@ declare const TestResultSchema: mongoose.Schema<any, mongoose.Model<any, any, an
             coherence?: number | null | undefined;
             vocabulary?: number | null | undefined;
             taskFulfillment?: number | null | undefined;
+            modelAnswer?: string | null | undefined;
             listenability?: number | null | undefined;
             examinerFeedback?: string | null | undefined;
         }>;
@@ -65,9 +68,9 @@ declare const TestResultSchema: mongoose.Schema<any, mongoose.Model<any, any, an
     createdAt: NativeDate;
     studentId: mongoose.Types.ObjectId;
     testSetNumber?: number | null | undefined;
+    publishedAt?: NativeDate | null | undefined;
     overallBand?: string | null | undefined;
     scoredAt?: NativeDate | null | undefined;
-    publishedAt?: NativeDate | null | undefined;
     certificateUrl?: string | null | undefined;
     testSessionId?: mongoose.Types.ObjectId | null | undefined;
     writingBand?: {
@@ -91,6 +94,7 @@ declare const TestResultSchema: mongoose.Schema<any, mongoose.Model<any, any, an
             coherence?: number | null | undefined;
             vocabulary?: number | null | undefined;
             taskFulfillment?: number | null | undefined;
+            modelAnswer?: string | null | undefined;
             listenability?: number | null | undefined;
             examinerFeedback?: string | null | undefined;
         }, mongoose.Types.Subdocument<mongoose.mongo.BSON.ObjectId, any, {
@@ -98,6 +102,7 @@ declare const TestResultSchema: mongoose.Schema<any, mongoose.Model<any, any, an
             coherence?: number | null | undefined;
             vocabulary?: number | null | undefined;
             taskFulfillment?: number | null | undefined;
+            modelAnswer?: string | null | undefined;
             listenability?: number | null | undefined;
             examinerFeedback?: string | null | undefined;
         }> & {
@@ -105,6 +110,7 @@ declare const TestResultSchema: mongoose.Schema<any, mongoose.Model<any, any, an
             coherence?: number | null | undefined;
             vocabulary?: number | null | undefined;
             taskFulfillment?: number | null | undefined;
+            modelAnswer?: string | null | undefined;
             listenability?: number | null | undefined;
             examinerFeedback?: string | null | undefined;
         }>;
@@ -127,9 +133,9 @@ declare const TestResultSchema: mongoose.Schema<any, mongoose.Model<any, any, an
     createdAt: NativeDate;
     studentId: mongoose.Types.ObjectId;
     testSetNumber?: number | null | undefined;
+    publishedAt?: NativeDate | null | undefined;
     overallBand?: string | null | undefined;
     scoredAt?: NativeDate | null | undefined;
-    publishedAt?: NativeDate | null | undefined;
     certificateUrl?: string | null | undefined;
     testSessionId?: mongoose.Types.ObjectId | null | undefined;
     writingBand?: {
@@ -153,6 +159,7 @@ declare const TestResultSchema: mongoose.Schema<any, mongoose.Model<any, any, an
             coherence?: number | null | undefined;
             vocabulary?: number | null | undefined;
             taskFulfillment?: number | null | undefined;
+            modelAnswer?: string | null | undefined;
             listenability?: number | null | undefined;
             examinerFeedback?: string | null | undefined;
         }, mongoose.Types.Subdocument<mongoose.mongo.BSON.ObjectId, any, {
@@ -160,6 +167,7 @@ declare const TestResultSchema: mongoose.Schema<any, mongoose.Model<any, any, an
             coherence?: number | null | undefined;
             vocabulary?: number | null | undefined;
             taskFulfillment?: number | null | undefined;
+            modelAnswer?: string | null | undefined;
             listenability?: number | null | undefined;
             examinerFeedback?: string | null | undefined;
         }> & {
@@ -167,6 +175,7 @@ declare const TestResultSchema: mongoose.Schema<any, mongoose.Model<any, any, an
             coherence?: number | null | undefined;
             vocabulary?: number | null | undefined;
             taskFulfillment?: number | null | undefined;
+            modelAnswer?: string | null | undefined;
             listenability?: number | null | undefined;
             examinerFeedback?: string | null | undefined;
         }>;
@@ -194,9 +203,9 @@ declare const TestResult: mongoose.Model<{
     createdAt: NativeDate;
     studentId: mongoose.Types.ObjectId;
     testSetNumber?: number | null | undefined;
+    publishedAt?: NativeDate | null | undefined;
     overallBand?: string | null | undefined;
     scoredAt?: NativeDate | null | undefined;
-    publishedAt?: NativeDate | null | undefined;
     certificateUrl?: string | null | undefined;
     testSessionId?: mongoose.Types.ObjectId | null | undefined;
     writingBand?: {
@@ -220,6 +229,7 @@ declare const TestResult: mongoose.Model<{
             coherence?: number | null | undefined;
             vocabulary?: number | null | undefined;
             taskFulfillment?: number | null | undefined;
+            modelAnswer?: string | null | undefined;
             listenability?: number | null | undefined;
             examinerFeedback?: string | null | undefined;
         }, mongoose.Types.Subdocument<mongoose.mongo.BSON.ObjectId, any, {
@@ -227,6 +237,7 @@ declare const TestResult: mongoose.Model<{
             coherence?: number | null | undefined;
             vocabulary?: number | null | undefined;
             taskFulfillment?: number | null | undefined;
+            modelAnswer?: string | null | undefined;
             listenability?: number | null | undefined;
             examinerFeedback?: string | null | undefined;
         }> & {
@@ -234,6 +245,7 @@ declare const TestResult: mongoose.Model<{
             coherence?: number | null | undefined;
             vocabulary?: number | null | undefined;
             taskFulfillment?: number | null | undefined;
+            modelAnswer?: string | null | undefined;
             listenability?: number | null | undefined;
             examinerFeedback?: string | null | undefined;
         }>;
@@ -256,9 +268,9 @@ declare const TestResult: mongoose.Model<{
     createdAt: NativeDate;
     studentId: mongoose.Types.ObjectId;
     testSetNumber?: number | null | undefined;
+    publishedAt?: NativeDate | null | undefined;
     overallBand?: string | null | undefined;
     scoredAt?: NativeDate | null | undefined;
-    publishedAt?: NativeDate | null | undefined;
     certificateUrl?: string | null | undefined;
     testSessionId?: mongoose.Types.ObjectId | null | undefined;
     writingBand?: {
@@ -282,6 +294,7 @@ declare const TestResult: mongoose.Model<{
             coherence?: number | null | undefined;
             vocabulary?: number | null | undefined;
             taskFulfillment?: number | null | undefined;
+            modelAnswer?: string | null | undefined;
             listenability?: number | null | undefined;
             examinerFeedback?: string | null | undefined;
         }, mongoose.Types.Subdocument<mongoose.mongo.BSON.ObjectId, any, {
@@ -289,6 +302,7 @@ declare const TestResult: mongoose.Model<{
             coherence?: number | null | undefined;
             vocabulary?: number | null | undefined;
             taskFulfillment?: number | null | undefined;
+            modelAnswer?: string | null | undefined;
             listenability?: number | null | undefined;
             examinerFeedback?: string | null | undefined;
         }> & {
@@ -296,6 +310,7 @@ declare const TestResult: mongoose.Model<{
             coherence?: number | null | undefined;
             vocabulary?: number | null | undefined;
             taskFulfillment?: number | null | undefined;
+            modelAnswer?: string | null | undefined;
             listenability?: number | null | undefined;
             examinerFeedback?: string | null | undefined;
         }>;
@@ -318,9 +333,9 @@ declare const TestResult: mongoose.Model<{
     createdAt: NativeDate;
     studentId: mongoose.Types.ObjectId;
     testSetNumber?: number | null | undefined;
+    publishedAt?: NativeDate | null | undefined;
     overallBand?: string | null | undefined;
     scoredAt?: NativeDate | null | undefined;
-    publishedAt?: NativeDate | null | undefined;
     certificateUrl?: string | null | undefined;
     testSessionId?: mongoose.Types.ObjectId | null | undefined;
     writingBand?: {
@@ -344,6 +359,7 @@ declare const TestResult: mongoose.Model<{
             coherence?: number | null | undefined;
             vocabulary?: number | null | undefined;
             taskFulfillment?: number | null | undefined;
+            modelAnswer?: string | null | undefined;
             listenability?: number | null | undefined;
             examinerFeedback?: string | null | undefined;
         }, mongoose.Types.Subdocument<mongoose.mongo.BSON.ObjectId, any, {
@@ -351,6 +367,7 @@ declare const TestResult: mongoose.Model<{
             coherence?: number | null | undefined;
             vocabulary?: number | null | undefined;
             taskFulfillment?: number | null | undefined;
+            modelAnswer?: string | null | undefined;
             listenability?: number | null | undefined;
             examinerFeedback?: string | null | undefined;
         }> & {
@@ -358,6 +375,7 @@ declare const TestResult: mongoose.Model<{
             coherence?: number | null | undefined;
             vocabulary?: number | null | undefined;
             taskFulfillment?: number | null | undefined;
+            modelAnswer?: string | null | undefined;
             listenability?: number | null | undefined;
             examinerFeedback?: string | null | undefined;
         }>;
@@ -384,9 +402,9 @@ declare const TestResult: mongoose.Model<{
     createdAt: NativeDate;
     studentId: mongoose.Types.ObjectId;
     testSetNumber?: number | null | undefined;
+    publishedAt?: NativeDate | null | undefined;
     overallBand?: string | null | undefined;
     scoredAt?: NativeDate | null | undefined;
-    publishedAt?: NativeDate | null | undefined;
     certificateUrl?: string | null | undefined;
     testSessionId?: mongoose.Types.ObjectId | null | undefined;
     writingBand?: {
@@ -410,6 +428,7 @@ declare const TestResult: mongoose.Model<{
             coherence?: number | null | undefined;
             vocabulary?: number | null | undefined;
             taskFulfillment?: number | null | undefined;
+            modelAnswer?: string | null | undefined;
             listenability?: number | null | undefined;
             examinerFeedback?: string | null | undefined;
         }, mongoose.Types.Subdocument<mongoose.mongo.BSON.ObjectId, any, {
@@ -417,6 +436,7 @@ declare const TestResult: mongoose.Model<{
             coherence?: number | null | undefined;
             vocabulary?: number | null | undefined;
             taskFulfillment?: number | null | undefined;
+            modelAnswer?: string | null | undefined;
             listenability?: number | null | undefined;
             examinerFeedback?: string | null | undefined;
         }> & {
@@ -424,6 +444,7 @@ declare const TestResult: mongoose.Model<{
             coherence?: number | null | undefined;
             vocabulary?: number | null | undefined;
             taskFulfillment?: number | null | undefined;
+            modelAnswer?: string | null | undefined;
             listenability?: number | null | undefined;
             examinerFeedback?: string | null | undefined;
         }>;
@@ -446,9 +467,9 @@ declare const TestResult: mongoose.Model<{
     createdAt: NativeDate;
     studentId: mongoose.Types.ObjectId;
     testSetNumber?: number | null | undefined;
+    publishedAt?: NativeDate | null | undefined;
     overallBand?: string | null | undefined;
     scoredAt?: NativeDate | null | undefined;
-    publishedAt?: NativeDate | null | undefined;
     certificateUrl?: string | null | undefined;
     testSessionId?: mongoose.Types.ObjectId | null | undefined;
     writingBand?: {
@@ -472,6 +493,7 @@ declare const TestResult: mongoose.Model<{
             coherence?: number | null | undefined;
             vocabulary?: number | null | undefined;
             taskFulfillment?: number | null | undefined;
+            modelAnswer?: string | null | undefined;
             listenability?: number | null | undefined;
             examinerFeedback?: string | null | undefined;
         }, mongoose.Types.Subdocument<mongoose.mongo.BSON.ObjectId, any, {
@@ -479,6 +501,7 @@ declare const TestResult: mongoose.Model<{
             coherence?: number | null | undefined;
             vocabulary?: number | null | undefined;
             taskFulfillment?: number | null | undefined;
+            modelAnswer?: string | null | undefined;
             listenability?: number | null | undefined;
             examinerFeedback?: string | null | undefined;
         }> & {
@@ -486,6 +509,7 @@ declare const TestResult: mongoose.Model<{
             coherence?: number | null | undefined;
             vocabulary?: number | null | undefined;
             taskFulfillment?: number | null | undefined;
+            modelAnswer?: string | null | undefined;
             listenability?: number | null | undefined;
             examinerFeedback?: string | null | undefined;
         }>;
@@ -508,9 +532,9 @@ declare const TestResult: mongoose.Model<{
     createdAt: NativeDate;
     studentId: mongoose.Types.ObjectId;
     testSetNumber?: number | null | undefined;
+    publishedAt?: NativeDate | null | undefined;
     overallBand?: string | null | undefined;
     scoredAt?: NativeDate | null | undefined;
-    publishedAt?: NativeDate | null | undefined;
     certificateUrl?: string | null | undefined;
     testSessionId?: mongoose.Types.ObjectId | null | undefined;
     writingBand?: {
@@ -534,6 +558,7 @@ declare const TestResult: mongoose.Model<{
             coherence?: number | null | undefined;
             vocabulary?: number | null | undefined;
             taskFulfillment?: number | null | undefined;
+            modelAnswer?: string | null | undefined;
             listenability?: number | null | undefined;
             examinerFeedback?: string | null | undefined;
         }, mongoose.Types.Subdocument<mongoose.mongo.BSON.ObjectId, any, {
@@ -541,6 +566,7 @@ declare const TestResult: mongoose.Model<{
             coherence?: number | null | undefined;
             vocabulary?: number | null | undefined;
             taskFulfillment?: number | null | undefined;
+            modelAnswer?: string | null | undefined;
             listenability?: number | null | undefined;
             examinerFeedback?: string | null | undefined;
         }> & {
@@ -548,6 +574,7 @@ declare const TestResult: mongoose.Model<{
             coherence?: number | null | undefined;
             vocabulary?: number | null | undefined;
             taskFulfillment?: number | null | undefined;
+            modelAnswer?: string | null | undefined;
             listenability?: number | null | undefined;
             examinerFeedback?: string | null | undefined;
         }>;

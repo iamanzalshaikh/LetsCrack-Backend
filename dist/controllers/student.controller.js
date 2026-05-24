@@ -6,7 +6,33 @@ import WritingQuestion from '../models/WritingQuestion.js';
 import SpeakingQuestion from '../models/SpeakingQuestion.js';
 import TestSet from '../models/TestSet.js';
 import { generateCertificate, generateAiEvaluationReport } from '../utils/pdf.js';
+import logger from '../utils/logger.js';
 import { computeEffectiveMediaPolicy } from '../utils/mediaPolicy.js';
+import { cancelGradingJobsForSession } from '../queues/index.js';
+/** End open attempts and cancel queued Gemini jobs (does not call Gemini). */
+const closeInProgressSessionsForStudent = async (studentId, options) => {
+    const query = { studentId, status: 'in_progress' };
+    if (options?.testSetNumber != null) {
+        query.testSetNumber = options.testSetNumber;
+    }
+    if (options?.exceptSessionId) {
+        query._id = { $ne: new mongoose.Types.ObjectId(options.exceptSessionId) };
+    }
+    const sessions = await TestSession.find(query);
+    let closed = 0;
+    for (const s of sessions) {
+        s.status = 'submitted';
+        s.completedAt = new Date();
+        s.endedEarly = true;
+        await s.save();
+        await cancelGradingJobsForSession(String(s._id));
+        closed++;
+    }
+    if (closed > 0) {
+        logger.info(`Auto-closed ${closed} in-progress session(s) for student ${studentId}`);
+    }
+    return closed;
+};
 /**
  * Get results for a specific test set
  * Optional query `sessionId`: when present (e.g. from /results/:setNumber?sessionId=…), load writing/speaking
@@ -19,7 +45,7 @@ export const getResults = async (req, res, next) => {
         const studentId = req.user.id;
         const tn = Number(testSetNumber);
         const sessionIdQs = typeof req.query.sessionId === 'string' ? req.query.sessionId.trim() : '';
-        const SESSION_PROJECT = 'writingResponses speakingRecordings status completedAt updatedAt';
+        const SESSION_PROJECT = 'writingResponses speakingRecordings status completedAt updatedAt selectedModules';
         let session = null;
         let result = null;
         /** Resolve by URL session first so we attach writing to the attempt the student just finished. */
@@ -116,6 +142,34 @@ export const getResults = async (req, res, next) => {
         const speakingFeedback = session?.speakingRecordings
             ?.map((r) => String(r?.aiAnalysis?.feedback || '').trim())
             .filter((f) => Boolean(f)) || [];
+        const speakingInsights = session?.speakingRecordings
+            ?.filter((r) => Boolean(r?.aiAnalysis || r?.transcript || r?.audioUrl))
+            .sort((a, b) => {
+            if (a.taskNumber !== b.taskNumber) {
+                return Number(a.taskNumber || 0) - Number(b.taskNumber || 0);
+            }
+            const subA = a.subTask || '';
+            const subB = b.subTask || '';
+            return subA.localeCompare(subB);
+        })
+            .map((r) => ({
+            taskNumber: r.taskNumber,
+            subTask: r.subTask || null,
+            audioUrl: r.audioUrl,
+            audioDuration: r.audioDuration,
+            transcript: r.transcript || '',
+            overallBand: r.aiBand,
+            coherence: r.aiAnalysis?.coherence,
+            vocabulary: r.aiAnalysis?.vocabulary,
+            listenability: r.aiAnalysis?.listenability,
+            taskFulfillment: r.aiAnalysis?.taskFulfillment,
+            feedback: String(r.aiAnalysis?.feedback || ''),
+            modelAnswer: r.aiAnalysis?.modelAnswer || '',
+        })) || [];
+        const speakingQuestions = await SpeakingQuestion.find({ testSetNumber: tn })
+            .select('taskNumber subTask prompt prepTime speakingTime sampleTranscript imageUrl imageUrlA imageUrlB imageUrlC optionALabel optionBLabel optionCLabel')
+            .sort({ taskNumber: 1, subTask: 1 })
+            .lean();
         const writingRows = await WritingQuestion.find({ testSetNumber: Number(testSetNumber) })
             .select('taskNumber')
             .sort({ taskNumber: 1 })
@@ -133,11 +187,14 @@ export const getResults = async (req, res, next) => {
             overallBand: result?.overallBand,
             submittedAt: result?.createdAt ?? sessionAny?.completedAt ?? sessionAny?.updatedAt,
             publishedAt: result?.publishedAt,
+            selectedModules: session?.selectedModules || ['writing', 'speaking'],
             writingFeedback,
             writingSubmissions,
             writingInsights,
             expectedWritingTaskNumbers,
             speakingFeedback,
+            speakingInsights,
+            speakingQuestions,
         });
     }
     catch (error) {
@@ -150,14 +207,45 @@ export const getResults = async (req, res, next) => {
 export const getProgress = async (req, res, next) => {
     try {
         const studentId = req.user.id;
-        const attempts = await TestResult.find({ studentId })
-            .sort({ createdAt: -1 });
-        const formattedAttempts = attempts.map(a => ({
-            setNumber: a.testSetNumber,
-            writingBand: a.writingBand?.finalBand,
-            speakingBand: a.speakingBand?.finalBand,
-            date: a.createdAt
-        }));
+        // Fetch all TestResults (graded)
+        const results = await TestResult.find({ studentId }).sort({ createdAt: -1 });
+        const tenMinutesAgo = new Date(Date.now() - 10 * 60 * 1000);
+        // Fetch all TestSessions (submitted or graded) to find those that don't have a result row yet
+        // Ignore sessions older than 10 minutes that don't have a result row yet
+        const sessions = await TestSession.find({
+            studentId,
+            status: { $in: ['submitted', 'grading', 'graded'] },
+            $or: [
+                { completedAt: { $gte: tenMinutesAgo } },
+                { startedAt: { $gte: tenMinutesAgo } }
+            ]
+        }).sort({ completedAt: -1, startedAt: -1 });
+        const resultSessionIds = new Set(results.map(r => r.testSessionId?.toString()).filter(Boolean));
+        const formattedAttempts = [];
+        // Add Graded Results
+        results.forEach(a => {
+            formattedAttempts.push({
+                setNumber: a.testSetNumber,
+                writingBand: a.writingBand?.finalBand,
+                speakingBand: a.speakingBand?.finalBand,
+                overallBand: a.overallBand,
+                date: a.createdAt,
+                status: 'graded'
+            });
+        });
+        // Add Sessions that are not yet in TestResults (e.g. submitted but still grading)
+        sessions.forEach(s => {
+            if (!resultSessionIds.has(s._id.toString())) {
+                formattedAttempts.push({
+                    setNumber: s.testSetNumber,
+                    date: s.completedAt || s.startedAt,
+                    status: s.status === 'graded' ? 'grading' : s.status, // If it's graded in session but no result row yet, it's effectively grading/finishing
+                    isPending: true
+                });
+            }
+        });
+        // Sort by date descending
+        formattedAttempts.sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
         res.json({ attempts: formattedAttempts });
     }
     catch (error) {
@@ -171,7 +259,11 @@ export const getResultStatus = async (req, res, next) => {
     try {
         const { sessionId } = req.params;
         const studentId = req.user.id;
-        const session = await TestSession.findOne({ _id: sessionId, studentId });
+        const sid = typeof sessionId === 'string' ? sessionId : (Array.isArray(sessionId) ? sessionId[0] : '');
+        if (!mongoose.Types.ObjectId.isValid(sid)) {
+            return res.status(404).json({ error: 'Session not found' });
+        }
+        const session = await TestSession.findOne({ _id: sid, studentId });
         if (!session) {
             return res.status(404).json({ error: 'Session not found' });
         }
@@ -220,6 +312,7 @@ export const getResultStatus = async (req, res, next) => {
             mode: session.mode || 'practice',
             selectedModules,
             instructionsAccepted: Boolean(session.instructionsAccepted),
+            endedEarly: Boolean(session.endedEarly),
             status,
             progress: {
                 writing: { submitted: submittedWriting, graded: gradedWriting, total: expectedWriting },
@@ -266,13 +359,13 @@ export const startTest = async (req, res, next) => {
         let session = await TestSession.findOne({
             studentId,
             testSetNumber: Number(testSetNumber),
-            status: 'in_progress'
+            status: 'in_progress',
         });
-        if (session) {
-            if (forceNewSession) {
-                await TestSession.deleteOne({ _id: session._id });
-                session = null;
-            }
+        if (forceNewSession) {
+            await closeInProgressSessionsForStudent(studentId, {
+                testSetNumber: Number(testSetNumber),
+            });
+            session = null;
         }
         if (session) {
             // User may have changed module/mode on the setup screen; the old session
@@ -298,6 +391,8 @@ export const startTest = async (req, res, next) => {
                 hasOngoingSession: true,
             });
         }
+        // New attempt on this set — auto-end any other in-progress sessions (other sets or abandoned runs)
+        await closeInProgressSessionsForStudent(studentId);
         // Create new session
         session = new TestSession({
             studentId,
@@ -324,13 +419,57 @@ export const startTest = async (req, res, next) => {
     }
 };
 /**
+ * End an in-progress test early: mark session submitted, stop queued AI grading.
+ */
+export const endTestSession = async (req, res, next) => {
+    try {
+        const { sessionId } = req.params;
+        const studentId = req.user.id;
+        const sid = typeof sessionId === 'string' ? sessionId : (Array.isArray(sessionId) ? sessionId[0] : '');
+        if (!mongoose.Types.ObjectId.isValid(sid)) {
+            return res.status(404).json({ error: 'Test session not found' });
+        }
+        const session = await TestSession.findOne({
+            _id: sid,
+            studentId,
+            status: { $in: ['in_progress', 'submitted'] },
+        });
+        if (!session) {
+            return res.status(404).json({ error: 'Test session not found or already closed' });
+        }
+        if (session.status === 'in_progress') {
+            session.status = 'submitted';
+            session.completedAt = new Date();
+        }
+        session.endedEarly = true;
+        await session.save();
+        const cancelledJobs = await cancelGradingJobsForSession(String(session._id));
+        logger.info(`Student ${studentId} ended test session ${sessionId} early; cancelled ${cancelledJobs} grading job(s)`);
+        return res.json({
+            success: true,
+            sessionId: session._id,
+            status: session.status,
+            endedEarly: true,
+            cancelledGradingJobs: cancelledJobs,
+            message: 'Test ended. Background AI grading has been stopped for this session.',
+        });
+    }
+    catch (error) {
+        next(error);
+    }
+};
+/**
  * Confirm pre-test instructions for a session
  */
 export const confirmInstructions = async (req, res, next) => {
     try {
         const { sessionId } = req.params;
         const studentId = req.user.id;
-        const session = await TestSession.findOneAndUpdate({ _id: sessionId, studentId, status: 'in_progress' }, { $set: { instructionsAccepted: true } }, { new: true });
+        const sid = typeof sessionId === 'string' ? sessionId : (Array.isArray(sessionId) ? sessionId[0] : '');
+        if (!mongoose.Types.ObjectId.isValid(sid)) {
+            return res.status(404).json({ error: 'Session not found' });
+        }
+        const session = await TestSession.findOneAndUpdate({ _id: sid, studentId, status: 'in_progress' }, { $set: { instructionsAccepted: true } }, { new: true });
         if (!session)
             return res.status(404).json({ error: 'Session not found' });
         return res.json({
@@ -380,6 +519,9 @@ export const recordMediaRuntimeEvent = async (req, res, next) => {
         const { sessionId, module, taskNumber = 1, eventType, subTask: bodySub, } = req.body;
         if (!sessionId || !module || !eventType) {
             return res.status(400).json({ error: 'sessionId, module and eventType are required' });
+        }
+        if (!mongoose.Types.ObjectId.isValid(sessionId)) {
+            return res.status(404).json({ error: 'Session not found' });
         }
         if (!['play_start', 'replay_attempt', 'seek_attempt'].includes(eventType)) {
             return res.status(400).json({ error: 'Invalid eventType' });

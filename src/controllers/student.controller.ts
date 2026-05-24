@@ -195,6 +195,7 @@ export const getResults = async (req: Request, res: Response, next: NextFunction
           listenability: r.aiAnalysis?.listenability,
           taskFulfillment: r.aiAnalysis?.taskFulfillment,
           feedback: String(r.aiAnalysis?.feedback || ''),
+          modelAnswer: r.aiAnalysis?.modelAnswer || '',
         })) || [];
 
     const speakingQuestions = await SpeakingQuestion.find({ testSetNumber: tn })
@@ -248,10 +249,16 @@ export const getProgress = async (req: Request, res: Response, next: NextFunctio
     // Fetch all TestResults (graded)
     const results = await TestResult.find({ studentId }).sort({ createdAt: -1 });
     
+    const tenMinutesAgo = new Date(Date.now() - 10 * 60 * 1000);
     // Fetch all TestSessions (submitted or graded) to find those that don't have a result row yet
+    // Ignore sessions older than 10 minutes that don't have a result row yet
     const sessions = await TestSession.find({ 
       studentId, 
-      status: { $in: ['submitted', 'grading', 'graded'] } 
+      status: { $in: ['submitted', 'grading', 'graded'] },
+      $or: [
+        { completedAt: { $gte: tenMinutesAgo } },
+        { startedAt: { $gte: tenMinutesAgo } }
+      ]
     }).sort({ completedAt: -1, startedAt: -1 });
 
     const resultSessionIds = new Set(results.map(r => r.testSessionId?.toString()).filter(Boolean));
@@ -299,7 +306,12 @@ export const getResultStatus = async (req: Request, res: Response, next: NextFun
     const { sessionId } = req.params;
     const studentId = (req as any).user.id;
 
-    const session = await TestSession.findOne({ _id: sessionId, studentId });
+    const sid = typeof sessionId === 'string' ? sessionId : (Array.isArray(sessionId) ? sessionId[0] : '');
+    if (!mongoose.Types.ObjectId.isValid(sid)) {
+      return res.status(404).json({ error: 'Session not found' });
+    }
+
+    const session = await TestSession.findOne({ _id: sid, studentId });
     if (!session) {
       return res.status(404).json({ error: 'Session not found' });
     }
@@ -482,8 +494,13 @@ export const endTestSession = async (req: Request, res: Response, next: NextFunc
     const { sessionId } = req.params;
     const studentId = (req as any).user.id;
 
+    const sid = typeof sessionId === 'string' ? sessionId : (Array.isArray(sessionId) ? sessionId[0] : '');
+    if (!mongoose.Types.ObjectId.isValid(sid)) {
+      return res.status(404).json({ error: 'Test session not found' });
+    }
+
     const session = await TestSession.findOne({
-      _id: sessionId,
+      _id: sid,
       studentId,
       status: { $in: ['in_progress', 'submitted'] },
     });
@@ -526,8 +543,13 @@ export const confirmInstructions = async (req: Request, res: Response, next: Nex
     const { sessionId } = req.params;
     const studentId = (req as any).user.id;
 
+    const sid = typeof sessionId === 'string' ? sessionId : (Array.isArray(sessionId) ? sessionId[0] : '');
+    if (!mongoose.Types.ObjectId.isValid(sid)) {
+      return res.status(404).json({ error: 'Session not found' });
+    }
+
     const session = await TestSession.findOneAndUpdate(
-      { _id: sessionId, studentId, status: 'in_progress' },
+      { _id: sid, studentId, status: 'in_progress' },
       { $set: { instructionsAccepted: true } },
       { new: true },
     );
@@ -597,6 +619,9 @@ export const recordMediaRuntimeEvent = async (req: Request, res: Response, next:
 
     if (!sessionId || !module || !eventType) {
       return res.status(400).json({ error: 'sessionId, module and eventType are required' });
+    }
+    if (!mongoose.Types.ObjectId.isValid(sessionId)) {
+      return res.status(404).json({ error: 'Session not found' });
     }
     if (!['play_start', 'replay_attempt', 'seek_attempt'].includes(eventType)) {
       return res.status(400).json({ error: 'Invalid eventType' });

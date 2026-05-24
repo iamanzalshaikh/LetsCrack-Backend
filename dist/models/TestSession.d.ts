@@ -7,6 +7,7 @@ declare const TestSessionSchema: mongoose.Schema<any, mongoose.Model<any, any, a
     instructionsAccepted: boolean;
     startedAt: NativeDate;
     status: "in_progress" | "submitted" | "graded";
+    endedEarly: boolean;
     simulationFocusLossCount: number;
     simulationIntegrityEvents: mongoose.Types.DocumentArray<{
         at: NativeDate;
@@ -169,6 +170,7 @@ declare const TestSessionSchema: mongoose.Schema<any, mongoose.Model<any, any, a
             vocabulary?: number | null | undefined;
             taskFulfillment?: number | null | undefined;
             feedback?: string | null | undefined;
+            modelAnswer?: string | null | undefined;
             listenability?: number | null | undefined;
         } | null | undefined;
         audioUrl?: string | null | undefined;
@@ -185,6 +187,7 @@ declare const TestSessionSchema: mongoose.Schema<any, mongoose.Model<any, any, a
             vocabulary?: number | null | undefined;
             taskFulfillment?: number | null | undefined;
             feedback?: string | null | undefined;
+            modelAnswer?: string | null | undefined;
             listenability?: number | null | undefined;
         } | null | undefined;
         audioUrl?: string | null | undefined;
@@ -201,6 +204,7 @@ declare const TestSessionSchema: mongoose.Schema<any, mongoose.Model<any, any, a
             vocabulary?: number | null | undefined;
             taskFulfillment?: number | null | undefined;
             feedback?: string | null | undefined;
+            modelAnswer?: string | null | undefined;
             listenability?: number | null | undefined;
         } | null | undefined;
         audioUrl?: string | null | undefined;
@@ -263,6 +267,7 @@ declare const TestSessionSchema: mongoose.Schema<any, mongoose.Model<any, any, a
     instructionsAccepted: boolean;
     startedAt: NativeDate;
     status: "in_progress" | "submitted" | "graded";
+    endedEarly: boolean;
     simulationFocusLossCount: number;
     simulationIntegrityEvents: mongoose.Types.DocumentArray<{
         at: NativeDate;
@@ -425,6 +430,7 @@ declare const TestSessionSchema: mongoose.Schema<any, mongoose.Model<any, any, a
             vocabulary?: number | null | undefined;
             taskFulfillment?: number | null | undefined;
             feedback?: string | null | undefined;
+            modelAnswer?: string | null | undefined;
             listenability?: number | null | undefined;
         } | null | undefined;
         audioUrl?: string | null | undefined;
@@ -441,6 +447,7 @@ declare const TestSessionSchema: mongoose.Schema<any, mongoose.Model<any, any, a
             vocabulary?: number | null | undefined;
             taskFulfillment?: number | null | undefined;
             feedback?: string | null | undefined;
+            modelAnswer?: string | null | undefined;
             listenability?: number | null | undefined;
         } | null | undefined;
         audioUrl?: string | null | undefined;
@@ -457,6 +464,7 @@ declare const TestSessionSchema: mongoose.Schema<any, mongoose.Model<any, any, a
             vocabulary?: number | null | undefined;
             taskFulfillment?: number | null | undefined;
             feedback?: string | null | undefined;
+            modelAnswer?: string | null | undefined;
             listenability?: number | null | undefined;
         } | null | undefined;
         audioUrl?: string | null | undefined;
@@ -519,6 +527,7 @@ declare const TestSessionSchema: mongoose.Schema<any, mongoose.Model<any, any, a
     instructionsAccepted: boolean;
     startedAt: NativeDate;
     status: "in_progress" | "submitted" | "graded";
+    endedEarly: boolean;
     simulationFocusLossCount: number;
     simulationIntegrityEvents: mongoose.Types.DocumentArray<{
         at: NativeDate;
@@ -681,6 +690,7 @@ declare const TestSessionSchema: mongoose.Schema<any, mongoose.Model<any, any, a
             vocabulary?: number | null | undefined;
             taskFulfillment?: number | null | undefined;
             feedback?: string | null | undefined;
+            modelAnswer?: string | null | undefined;
             listenability?: number | null | undefined;
         } | null | undefined;
         audioUrl?: string | null | undefined;
@@ -697,6 +707,7 @@ declare const TestSessionSchema: mongoose.Schema<any, mongoose.Model<any, any, a
             vocabulary?: number | null | undefined;
             taskFulfillment?: number | null | undefined;
             feedback?: string | null | undefined;
+            modelAnswer?: string | null | undefined;
             listenability?: number | null | undefined;
         } | null | undefined;
         audioUrl?: string | null | undefined;
@@ -713,6 +724,7 @@ declare const TestSessionSchema: mongoose.Schema<any, mongoose.Model<any, any, a
             vocabulary?: number | null | undefined;
             taskFulfillment?: number | null | undefined;
             feedback?: string | null | undefined;
+            modelAnswer?: string | null | undefined;
             listenability?: number | null | undefined;
         } | null | undefined;
         audioUrl?: string | null | undefined;
@@ -780,6 +792,7 @@ declare const TestSession: mongoose.Model<{
     instructionsAccepted: boolean;
     startedAt: NativeDate;
     status: "in_progress" | "submitted" | "graded";
+    endedEarly: boolean;
     simulationFocusLossCount: number;
     simulationIntegrityEvents: mongoose.Types.DocumentArray<{
         at: NativeDate;
@@ -942,6 +955,7 @@ declare const TestSession: mongoose.Model<{
             vocabulary?: number | null | undefined;
             taskFulfillment?: number | null | undefined;
             feedback?: string | null | undefined;
+            modelAnswer?: string | null | undefined;
             listenability?: number | null | undefined;
         } | null | undefined;
         audioUrl?: string | null | undefined;
@@ -958,6 +972,7 @@ declare const TestSession: mongoose.Model<{
             vocabulary?: number | null | undefined;
             taskFulfillment?: number | null | undefined;
             feedback?: string | null | undefined;
+            modelAnswer?: string | null | undefined;
             listenability?: number | null | undefined;
         } | null | undefined;
         audioUrl?: string | null | undefined;
@@ -974,6 +989,7 @@ declare const TestSession: mongoose.Model<{
             vocabulary?: number | null | undefined;
             taskFulfillment?: number | null | undefined;
             feedback?: string | null | undefined;
+            modelAnswer?: string | null | undefined;
             listenability?: number | null | undefined;
         } | null | undefined;
         audioUrl?: string | null | undefined;
@@ -1036,6 +1052,7 @@ declare const TestSession: mongoose.Model<{
     instructionsAccepted: boolean;
     startedAt: NativeDate;
     status: "in_progress" | "submitted" | "graded";
+    endedEarly: boolean;
     simulationFocusLossCount: number;
     simulationIntegrityEvents: mongoose.Types.DocumentArray<{
         at: NativeDate;
@@ -1198,6 +1215,7 @@ declare const TestSession: mongoose.Model<{
             vocabulary?: number | null | undefined;
             taskFulfillment?: number | null | undefined;
             feedback?: string | null | undefined;
+            modelAnswer?: string | null | undefined;
             listenability?: number | null | undefined;
         } | null | undefined;
         audioUrl?: string | null | undefined;
@@ -1214,6 +1232,7 @@ declare const TestSession: mongoose.Model<{
             vocabulary?: number | null | undefined;
             taskFulfillment?: number | null | undefined;
             feedback?: string | null | undefined;
+            modelAnswer?: string | null | undefined;
             listenability?: number | null | undefined;
         } | null | undefined;
         audioUrl?: string | null | undefined;
@@ -1230,6 +1249,7 @@ declare const TestSession: mongoose.Model<{
             vocabulary?: number | null | undefined;
             taskFulfillment?: number | null | undefined;
             feedback?: string | null | undefined;
+            modelAnswer?: string | null | undefined;
             listenability?: number | null | undefined;
         } | null | undefined;
         audioUrl?: string | null | undefined;
@@ -1292,6 +1312,7 @@ declare const TestSession: mongoose.Model<{
     instructionsAccepted: boolean;
     startedAt: NativeDate;
     status: "in_progress" | "submitted" | "graded";
+    endedEarly: boolean;
     simulationFocusLossCount: number;
     simulationIntegrityEvents: mongoose.Types.DocumentArray<{
         at: NativeDate;
@@ -1454,6 +1475,7 @@ declare const TestSession: mongoose.Model<{
             vocabulary?: number | null | undefined;
             taskFulfillment?: number | null | undefined;
             feedback?: string | null | undefined;
+            modelAnswer?: string | null | undefined;
             listenability?: number | null | undefined;
         } | null | undefined;
         audioUrl?: string | null | undefined;
@@ -1470,6 +1492,7 @@ declare const TestSession: mongoose.Model<{
             vocabulary?: number | null | undefined;
             taskFulfillment?: number | null | undefined;
             feedback?: string | null | undefined;
+            modelAnswer?: string | null | undefined;
             listenability?: number | null | undefined;
         } | null | undefined;
         audioUrl?: string | null | undefined;
@@ -1486,6 +1509,7 @@ declare const TestSession: mongoose.Model<{
             vocabulary?: number | null | undefined;
             taskFulfillment?: number | null | undefined;
             feedback?: string | null | undefined;
+            modelAnswer?: string | null | undefined;
             listenability?: number | null | undefined;
         } | null | undefined;
         audioUrl?: string | null | undefined;
@@ -1552,6 +1576,7 @@ declare const TestSession: mongoose.Model<{
     instructionsAccepted: boolean;
     startedAt: NativeDate;
     status: "in_progress" | "submitted" | "graded";
+    endedEarly: boolean;
     simulationFocusLossCount: number;
     simulationIntegrityEvents: mongoose.Types.DocumentArray<{
         at: NativeDate;
@@ -1714,6 +1739,7 @@ declare const TestSession: mongoose.Model<{
             vocabulary?: number | null | undefined;
             taskFulfillment?: number | null | undefined;
             feedback?: string | null | undefined;
+            modelAnswer?: string | null | undefined;
             listenability?: number | null | undefined;
         } | null | undefined;
         audioUrl?: string | null | undefined;
@@ -1730,6 +1756,7 @@ declare const TestSession: mongoose.Model<{
             vocabulary?: number | null | undefined;
             taskFulfillment?: number | null | undefined;
             feedback?: string | null | undefined;
+            modelAnswer?: string | null | undefined;
             listenability?: number | null | undefined;
         } | null | undefined;
         audioUrl?: string | null | undefined;
@@ -1746,6 +1773,7 @@ declare const TestSession: mongoose.Model<{
             vocabulary?: number | null | undefined;
             taskFulfillment?: number | null | undefined;
             feedback?: string | null | undefined;
+            modelAnswer?: string | null | undefined;
             listenability?: number | null | undefined;
         } | null | undefined;
         audioUrl?: string | null | undefined;
@@ -1808,6 +1836,7 @@ declare const TestSession: mongoose.Model<{
     instructionsAccepted: boolean;
     startedAt: NativeDate;
     status: "in_progress" | "submitted" | "graded";
+    endedEarly: boolean;
     simulationFocusLossCount: number;
     simulationIntegrityEvents: mongoose.Types.DocumentArray<{
         at: NativeDate;
@@ -1970,6 +1999,7 @@ declare const TestSession: mongoose.Model<{
             vocabulary?: number | null | undefined;
             taskFulfillment?: number | null | undefined;
             feedback?: string | null | undefined;
+            modelAnswer?: string | null | undefined;
             listenability?: number | null | undefined;
         } | null | undefined;
         audioUrl?: string | null | undefined;
@@ -1986,6 +2016,7 @@ declare const TestSession: mongoose.Model<{
             vocabulary?: number | null | undefined;
             taskFulfillment?: number | null | undefined;
             feedback?: string | null | undefined;
+            modelAnswer?: string | null | undefined;
             listenability?: number | null | undefined;
         } | null | undefined;
         audioUrl?: string | null | undefined;
@@ -2002,6 +2033,7 @@ declare const TestSession: mongoose.Model<{
             vocabulary?: number | null | undefined;
             taskFulfillment?: number | null | undefined;
             feedback?: string | null | undefined;
+            modelAnswer?: string | null | undefined;
             listenability?: number | null | undefined;
         } | null | undefined;
         audioUrl?: string | null | undefined;
@@ -2064,6 +2096,7 @@ declare const TestSession: mongoose.Model<{
     instructionsAccepted: boolean;
     startedAt: NativeDate;
     status: "in_progress" | "submitted" | "graded";
+    endedEarly: boolean;
     simulationFocusLossCount: number;
     simulationIntegrityEvents: mongoose.Types.DocumentArray<{
         at: NativeDate;
@@ -2226,6 +2259,7 @@ declare const TestSession: mongoose.Model<{
             vocabulary?: number | null | undefined;
             taskFulfillment?: number | null | undefined;
             feedback?: string | null | undefined;
+            modelAnswer?: string | null | undefined;
             listenability?: number | null | undefined;
         } | null | undefined;
         audioUrl?: string | null | undefined;
@@ -2242,6 +2276,7 @@ declare const TestSession: mongoose.Model<{
             vocabulary?: number | null | undefined;
             taskFulfillment?: number | null | undefined;
             feedback?: string | null | undefined;
+            modelAnswer?: string | null | undefined;
             listenability?: number | null | undefined;
         } | null | undefined;
         audioUrl?: string | null | undefined;
@@ -2258,6 +2293,7 @@ declare const TestSession: mongoose.Model<{
             vocabulary?: number | null | undefined;
             taskFulfillment?: number | null | undefined;
             feedback?: string | null | undefined;
+            modelAnswer?: string | null | undefined;
             listenability?: number | null | undefined;
         } | null | undefined;
         audioUrl?: string | null | undefined;

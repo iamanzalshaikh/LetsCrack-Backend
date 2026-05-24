@@ -75,7 +75,8 @@ const TestSessionSchema = new mongoose.Schema({
       vocabulary: Number,
       listenability: Number,
       taskFulfillment: Number,
-      feedback: String
+      feedback: String,
+      modelAnswer: String
     }
   }],
   // MCQ Support (Reading/Listening)

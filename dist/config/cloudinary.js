@@ -7,11 +7,16 @@ cloudinary.config({
     api_key: env.CLOUDINARY_API_KEY,
     api_secret: env.CLOUDINARY_API_SECRET,
 });
-const uploadOnCloudinary = async (fileBuffer, folder = "lce-test-recordings") => {
+const uploadOnCloudinary = async (fileBuffer, options = {}) => {
+    const { folder = 'lce-test-recordings', resource_type = 'auto' } = options;
+    if (!fileBuffer || fileBuffer.length === 0) {
+        logger.error('Cloudinary Upload Error: File buffer is empty');
+        return null;
+    }
     return new Promise((resolve) => {
         const uploadStream = cloudinary.uploader.upload_stream({
             folder,
-            resource_type: "auto",
+            resource_type,
         }, (error, result) => {
             if (error) {
                 logger.error(`Cloudinary Upload Error: ${error.message}`);

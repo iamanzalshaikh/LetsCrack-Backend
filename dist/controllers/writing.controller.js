@@ -1,9 +1,12 @@
 import TestSession from '../models/TestSession.js';
 import WritingQuestion from '../models/WritingQuestion.js';
 import SpeakingQuestion from '../models/SpeakingQuestion.js';
+import QuestionBank from '../models/QuestionBank.js';
+import TestSet from '../models/TestSet.js';
 import { gradingQueue } from '../queues/index.js';
 import { emitToUser } from '../sockets/emitter.js';
 import { isActionAllowed } from '../utils/modeRules.js';
+import logger from '../utils/logger.js';
 async function getSortedWritingTaskNumbers(testSetNumber) {
     const rows = await WritingQuestion.find({ testSetNumber })
         .select('taskNumber')
@@ -245,14 +248,31 @@ export const submit = async (req, res, next) => {
                 ...submissionData
             };
         }
-        const [totalWritingTasks, totalSpeakingTasks] = await Promise.all([
-            WritingQuestion.countDocuments({ testSetNumber: Number(testSetNumber) }),
-            SpeakingQuestion.countDocuments({ testSetNumber: Number(testSetNumber) }),
-        ]);
-        const submittedWriting = session.writingResponses.filter((r) => Boolean(r.submittedAt)).length;
-        const submittedSpeaking = session.speakingRecordings.length;
-        const totalExpected = totalWritingTasks + totalSpeakingTasks;
-        if (totalExpected > 0 && submittedWriting + submittedSpeaking >= totalExpected) {
+        let totalExpected = 0;
+        let submittedCount = 0;
+        if (selectedModules.includes('writing')) {
+            const totalWritingTasks = await WritingQuestion.countDocuments({ testSetNumber: Number(testSetNumber) });
+            totalExpected += totalWritingTasks;
+            submittedCount += session.writingResponses.filter((r) => Boolean(r.submittedAt)).length;
+        }
+        if (selectedModules.includes('speaking')) {
+            const totalSpeakingTasks = await SpeakingQuestion.countDocuments({ testSetNumber: Number(testSetNumber) });
+            totalExpected += totalSpeakingTasks;
+            submittedCount += session.speakingRecordings.length;
+        }
+        if (selectedModules.includes('reading')) {
+            const readingTask = await QuestionBank.findOne({ module: 'reading', testSetNumber: Number(testSetNumber) });
+            const readingCount = readingTask?.mcqs?.length || 0;
+            totalExpected += readingCount;
+            submittedCount += session.mcqResponses.filter((r) => r.module === 'reading').length;
+        }
+        if (selectedModules.includes('listening')) {
+            const listeningTask = await QuestionBank.findOne({ module: 'listening', testSetNumber: Number(testSetNumber) });
+            const listeningCount = listeningTask?.mcqs?.length || 0;
+            totalExpected += listeningCount;
+            submittedCount += session.mcqResponses.filter((r) => r.module === 'listening').length;
+        }
+        if (totalExpected > 0 && submittedCount >= totalExpected) {
             session.status = 'submitted';
             session.completedAt = new Date();
         }
@@ -263,24 +283,31 @@ export const submit = async (req, res, next) => {
             const nextCursor = idx >= 0 && idx < sorted.length - 1 ? sorted[idx + 1] : -1;
             await TestSession.updateOne({ _id: session._id }, { $set: { writingCursorTask: nextCursor } });
         }
-        // Trigger AI grading in background and try a short fast-path wait for "instant" response.
-        const gradingJob = await gradingQueue.add(`grade-writing-session-${session._id}-task-${taskNumber}`, {
-            sessionId: session._id,
-            testSetNumber: Number(testSetNumber),
-            taskNumber: Number(taskNumber),
-            module: 'writing'
-        });
-        emitToUser(studentId.toString(), 'grading:queued', {
-            sessionId: session._id,
-            module: 'writing',
-            taskNumber: Number(taskNumber),
-        });
+        let gradingJobId = null;
+        let aiGradingStatus = 'queued';
+        if (!session.endedEarly) {
+            const gradingJob = await gradingQueue.add(`grade-writing-session-${session._id}-task-${taskNumber}`, {
+                sessionId: session._id,
+                testSetNumber: Number(testSetNumber),
+                taskNumber: Number(taskNumber),
+                module: 'writing',
+            });
+            gradingJobId = gradingJob.id ?? null;
+            emitToUser(studentId.toString(), 'grading:queued', {
+                sessionId: session._id,
+                module: 'writing',
+                taskNumber: Number(taskNumber),
+            });
+        }
+        else {
+            aiGradingStatus = 'skipped';
+        }
         /** Never block HTTP on Gemini / worker — grading continues in BullMQ (see queues/index.ts). */
         res.json({
             submissionId: String(session._id),
             status: 'submitted',
-            aiGradingStatus: 'queued',
-            gradingJobId: gradingJob.id ?? null,
+            aiGradingStatus,
+            gradingJobId,
         });
     }
     catch (error) {
@@ -308,10 +335,13 @@ export const getTask = async (req, res, next) => {
         if (!selectedModules.includes('writing')) {
             return res.status(403).json({ error: 'Writing module is not enabled for this session' });
         }
-        const task = await WritingQuestion.findOne({
-            testSetNumber: Number(setNumber),
-            taskNumber: Number(taskNumber)
-        });
+        const [task, testSet] = await Promise.all([
+            WritingQuestion.findOne({
+                testSetNumber: Number(setNumber),
+                taskNumber: Number(taskNumber)
+            }),
+            TestSet.findOne({ testSetNumber: Number(setNumber) }).select('instructions').lean()
+        ]);
         if (!task)
             return res.status(404).json({ error: 'Writing task not found' });
         const simGate = await assertSimulationWritingTaskAccess(session, Number(taskNumber));
@@ -343,14 +373,22 @@ export const getTask = async (req, res, next) => {
                 focused: typeof e?.focused === 'boolean' ? e.focused : undefined,
             }))
             : [];
-        res.json({
+        const responsePayload = {
             task: taskPayload,
+            testSet,
             modePolicy,
             sessionMode: mode,
             allowedWritingTask: simGate.ok ? simGate.allowedWritingTask : undefined,
             simulationFocusLossCount: session.simulationFocusLossCount ?? 0,
             simulationIntegrityTail,
+        };
+        logger.info('[DEBUG] Writing getTask payload: %o', {
+            testSetId: testSet?._id,
+            hasInstructions: !!testSet?.instructions,
+            writingVideo: testSet?.instructions?.writingInstructionVideoUrl,
+            taskVideo: taskPayload?.instructionVideoUrl
         });
+        res.json(responsePayload);
     }
     catch (error) {
         next(error);

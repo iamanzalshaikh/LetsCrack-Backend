@@ -59,7 +59,11 @@ export const register = async (req, res, next) => {
 };
 export const login = async (req, res, next) => {
     try {
-        const { email, password } = req.body;
+        const email = typeof req.body?.email === 'string' ? req.body.email.trim().toLowerCase() : '';
+        const password = typeof req.body?.password === 'string' ? req.body.password : '';
+        if (!email || !password) {
+            return res.status(400).json({ error: 'Email and password are required' });
+        }
         // Find user
         const user = await User.findOne({ email });
         if (!user) {

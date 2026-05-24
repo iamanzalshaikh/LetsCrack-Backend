@@ -5,9 +5,6 @@ declare const SpeakingQuestionSchema: mongoose.Schema<any, mongoose.Model<any, a
     testSetNumber: number;
     taskNumber: number;
     module: "speaking";
-    prompt: string;
-    prepTime: number;
-    speakingTime: number;
     mediaType: "none" | "audio" | "video" | "image";
     allowReplay: boolean;
     allowSeek: boolean;
@@ -26,15 +23,15 @@ declare const SpeakingQuestionSchema: mongoose.Schema<any, mongoose.Model<any, a
     sampleTranscript?: string | null | undefined;
     mediaUrl?: string | null | undefined;
     instructionVideoUrl?: string | null | undefined;
+    prompt?: string | null | undefined;
+    prepTime?: number | null | undefined;
+    speakingTime?: number | null | undefined;
 }, mongoose.Document<unknown, {}, mongoose.FlatRecord<{
     createdAt: NativeDate;
     updatedAt: NativeDate;
     testSetNumber: number;
     taskNumber: number;
     module: "speaking";
-    prompt: string;
-    prepTime: number;
-    speakingTime: number;
     mediaType: "none" | "audio" | "video" | "image";
     allowReplay: boolean;
     allowSeek: boolean;
@@ -53,15 +50,15 @@ declare const SpeakingQuestionSchema: mongoose.Schema<any, mongoose.Model<any, a
     sampleTranscript?: string | null | undefined;
     mediaUrl?: string | null | undefined;
     instructionVideoUrl?: string | null | undefined;
+    prompt?: string | null | undefined;
+    prepTime?: number | null | undefined;
+    speakingTime?: number | null | undefined;
 }>, {}, mongoose.DefaultSchemaOptions> & mongoose.FlatRecord<{
     createdAt: NativeDate;
     updatedAt: NativeDate;
     testSetNumber: number;
     taskNumber: number;
     module: "speaking";
-    prompt: string;
-    prepTime: number;
-    speakingTime: number;
     mediaType: "none" | "audio" | "video" | "image";
     allowReplay: boolean;
     allowSeek: boolean;
@@ -80,6 +77,9 @@ declare const SpeakingQuestionSchema: mongoose.Schema<any, mongoose.Model<any, a
     sampleTranscript?: string | null | undefined;
     mediaUrl?: string | null | undefined;
     instructionVideoUrl?: string | null | undefined;
+    prompt?: string | null | undefined;
+    prepTime?: number | null | undefined;
+    speakingTime?: number | null | undefined;
 }> & {
     _id: mongoose.Types.ObjectId;
 } & {
@@ -91,9 +91,6 @@ declare const SpeakingQuestion: mongoose.Model<{
     testSetNumber: number;
     taskNumber: number;
     module: "speaking";
-    prompt: string;
-    prepTime: number;
-    speakingTime: number;
     mediaType: "none" | "audio" | "video" | "image";
     allowReplay: boolean;
     allowSeek: boolean;
@@ -112,15 +109,15 @@ declare const SpeakingQuestion: mongoose.Model<{
     sampleTranscript?: string | null | undefined;
     mediaUrl?: string | null | undefined;
     instructionVideoUrl?: string | null | undefined;
+    prompt?: string | null | undefined;
+    prepTime?: number | null | undefined;
+    speakingTime?: number | null | undefined;
 }, {}, {}, {}, mongoose.Document<unknown, {}, {
     createdAt: NativeDate;
     updatedAt: NativeDate;
     testSetNumber: number;
     taskNumber: number;
     module: "speaking";
-    prompt: string;
-    prepTime: number;
-    speakingTime: number;
     mediaType: "none" | "audio" | "video" | "image";
     allowReplay: boolean;
     allowSeek: boolean;
@@ -139,15 +136,15 @@ declare const SpeakingQuestion: mongoose.Model<{
     sampleTranscript?: string | null | undefined;
     mediaUrl?: string | null | undefined;
     instructionVideoUrl?: string | null | undefined;
+    prompt?: string | null | undefined;
+    prepTime?: number | null | undefined;
+    speakingTime?: number | null | undefined;
 }, {}, mongoose.DefaultSchemaOptions> & {
     createdAt: NativeDate;
     updatedAt: NativeDate;
     testSetNumber: number;
     taskNumber: number;
     module: "speaking";
-    prompt: string;
-    prepTime: number;
-    speakingTime: number;
     mediaType: "none" | "audio" | "video" | "image";
     allowReplay: boolean;
     allowSeek: boolean;
@@ -166,6 +163,9 @@ declare const SpeakingQuestion: mongoose.Model<{
     sampleTranscript?: string | null | undefined;
     mediaUrl?: string | null | undefined;
     instructionVideoUrl?: string | null | undefined;
+    prompt?: string | null | undefined;
+    prepTime?: number | null | undefined;
+    speakingTime?: number | null | undefined;
 } & {
     _id: mongoose.Types.ObjectId;
 } & {
@@ -176,9 +176,6 @@ declare const SpeakingQuestion: mongoose.Model<{
     testSetNumber: number;
     taskNumber: number;
     module: "speaking";
-    prompt: string;
-    prepTime: number;
-    speakingTime: number;
     mediaType: "none" | "audio" | "video" | "image";
     allowReplay: boolean;
     allowSeek: boolean;
@@ -197,15 +194,15 @@ declare const SpeakingQuestion: mongoose.Model<{
     sampleTranscript?: string | null | undefined;
     mediaUrl?: string | null | undefined;
     instructionVideoUrl?: string | null | undefined;
+    prompt?: string | null | undefined;
+    prepTime?: number | null | undefined;
+    speakingTime?: number | null | undefined;
 }, mongoose.Document<unknown, {}, mongoose.FlatRecord<{
     createdAt: NativeDate;
     updatedAt: NativeDate;
     testSetNumber: number;
     taskNumber: number;
     module: "speaking";
-    prompt: string;
-    prepTime: number;
-    speakingTime: number;
     mediaType: "none" | "audio" | "video" | "image";
     allowReplay: boolean;
     allowSeek: boolean;
@@ -224,15 +221,15 @@ declare const SpeakingQuestion: mongoose.Model<{
     sampleTranscript?: string | null | undefined;
     mediaUrl?: string | null | undefined;
     instructionVideoUrl?: string | null | undefined;
+    prompt?: string | null | undefined;
+    prepTime?: number | null | undefined;
+    speakingTime?: number | null | undefined;
 }>, {}, mongoose.DefaultSchemaOptions> & mongoose.FlatRecord<{
     createdAt: NativeDate;
     updatedAt: NativeDate;
     testSetNumber: number;
     taskNumber: number;
     module: "speaking";
-    prompt: string;
-    prepTime: number;
-    speakingTime: number;
     mediaType: "none" | "audio" | "video" | "image";
     allowReplay: boolean;
     allowSeek: boolean;
@@ -251,6 +248,9 @@ declare const SpeakingQuestion: mongoose.Model<{
     sampleTranscript?: string | null | undefined;
     mediaUrl?: string | null | undefined;
     instructionVideoUrl?: string | null | undefined;
+    prompt?: string | null | undefined;
+    prepTime?: number | null | undefined;
+    speakingTime?: number | null | undefined;
 }> & {
     _id: mongoose.Types.ObjectId;
 } & {

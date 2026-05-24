@@ -2,6 +2,7 @@ import { Request, Response, NextFunction } from "express"
 import TestSession from "../models/TestSession.js"
 import WritingQuestion from "../models/WritingQuestion.js"
 import SpeakingQuestion from "../models/SpeakingQuestion.js"
+import QuestionBank from "../models/QuestionBank.js"
 import TestSet from "../models/TestSet.js"
 import { uploadStudentSpeakingAudio } from "../utils/cloudinaryMedia.js"
 import { gradingQueue } from "../queues/index.js"
@@ -119,6 +120,18 @@ export const saveRecording = async (req: Request, res: Response, next: NextFunct
       const totalSpeakingTasks = await SpeakingQuestion.countDocuments({ testSetNumber: Number(testSetNumber) });
       totalExpected += totalSpeakingTasks;
       submittedCount += session.speakingRecordings.length;
+    }
+    if (selectedModules.includes("reading")) {
+      const readingTask = await QuestionBank.findOne({ module: "reading", testSetNumber: Number(testSetNumber) });
+      const readingCount = readingTask?.mcqs?.length || 0;
+      totalExpected += readingCount;
+      submittedCount += session.mcqResponses.filter((r: any) => r.module === "reading").length;
+    }
+    if (selectedModules.includes("listening")) {
+      const listeningTask = await QuestionBank.findOne({ module: "listening", testSetNumber: Number(testSetNumber) });
+      const listeningCount = listeningTask?.mcqs?.length || 0;
+      totalExpected += listeningCount;
+      submittedCount += session.mcqResponses.filter((r: any) => r.module === "listening").length;
     }
 
     if (totalExpected > 0 && submittedCount >= totalExpected) {

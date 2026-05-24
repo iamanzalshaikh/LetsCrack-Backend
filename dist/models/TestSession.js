@@ -10,6 +10,8 @@ const TestSessionSchema = new mongoose.Schema({
     purgeAt: Date,
     purgedAt: Date,
     status: { type: String, enum: ['in_progress', 'submitted', 'graded'], default: 'in_progress' },
+    /** Set when the student ends the test early; blocks new AI grading and skips queued jobs. */
+    endedEarly: { type: Boolean, default: false },
     /** Simulation writing: null = not set (infer from progress), positive = only that task is editable, -1 = writing finished */
     writingCursorTask: { type: Number, default: null },
     simulationFocusLossCount: { type: Number, default: 0 },
@@ -72,7 +74,8 @@ const TestSessionSchema = new mongoose.Schema({
                 vocabulary: Number,
                 listenability: Number,
                 taskFulfillment: Number,
-                feedback: String
+                feedback: String,
+                modelAnswer: String
             }
         }],
     // MCQ Support (Reading/Listening)

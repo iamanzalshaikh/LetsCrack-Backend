@@ -2,11 +2,105 @@ import { GoogleGenerativeAI } from "@google/generative-ai";
 import axios from 'axios';
 import { env } from '../config/env.js';
 import logger from './logger.js';
-const genAI = new GoogleGenerativeAI(env.GEMINI_API_KEY);
-const model = genAI.getGenerativeModel({ model: "gemini-flash-latest" });
+/** Fresh client per call so a replaced GEMINI_API_KEY in .env works after server restart. */
+const getFlashModel = () => new GoogleGenerativeAI(env.GEMINI_API_KEY).getGenerativeModel({
+    model: env.GEMINI_MODEL,
+    generationConfig: { maxOutputTokens: 2544, temperature: 0.3 }
+});
 const parseJsonSafely = (text) => {
-    const cleaned = text.replace(/```json|```/g, '').trim();
-    return JSON.parse(cleaned);
+    let cleaned = text.replace(/```json|```/g, '').trim();
+    try {
+        return JSON.parse(cleaned);
+    }
+    catch (e) {
+        // Try to extract JSON structure if surrounded by conversational pre-amble/post-amble
+        const startIdx = cleaned.indexOf('{');
+        const endIdx = cleaned.lastIndexOf('}');
+        if (startIdx !== -1 && endIdx !== -1 && endIdx > startIdx) {
+            let candidate = cleaned.substring(startIdx, endIdx + 1);
+            try {
+                return JSON.parse(candidate);
+            }
+            catch (innerErr) {
+                // Attempt minor automatic repairs for common LLM JSON formatting issues
+                try {
+                    candidate = candidate
+                        .replace(/,\s*([}\]])/g, '$1') // Remove trailing commas
+                        .replace(/[\u0000-\u001F\u007F-\u009F]/g, ' '); // Clean control characters
+                    return JSON.parse(candidate);
+                }
+                catch (repairErr) {
+                    throw new Error(`JSON parsing failed: ${innerErr instanceof Error ? innerErr.message : String(innerErr)}. Tried repairing: ${repairErr instanceof Error ? repairErr.message : String(repairErr)}. Cleaned response: ${cleaned}`);
+                }
+            }
+        }
+        throw e;
+    }
+};
+const delay = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
+/**
+ * Robust wrapper for Gemini API calls to gracefully pause and retry upon transient errors
+ * (e.g. per-minute 429 rate limits, 503 Service Unavailable).
+ *
+ * IMPORTANT DISTINCTION:
+ * - "PerDay" quota = daily limit exhausted. Retrying in 15s won't help — must fail fast with clear error.
+ * - "PerMinute" quota = temporary burst limit. Retrying after 15-30s will succeed once the window resets.
+ */
+const generateContentWithRetry = async (generativeModel, contents, maxAttempts = 3, initialDelayMs = 15000) => {
+    let attempt = 0;
+    while (attempt < maxAttempts) {
+        try {
+            attempt++;
+            return await generativeModel.generateContent(contents);
+        }
+        catch (error) {
+            const errorMsg = error instanceof Error ? error.message : String(error);
+            const errorMsgLower = errorMsg.toLowerCase();
+            // --- DETECT DAILY QUOTA EXHAUSTION (cannot be retried, must fail fast) ---
+            const isDailyQuota = errorMsgLower.includes('perday') ||
+                errorMsgLower.includes('per_day') ||
+                errorMsgLower.includes('requestsperdayperproject') ||
+                (errorMsgLower.includes('quota') && errorMsgLower.includes('day'));
+            if (isDailyQuota) {
+                logger.error(`Gemini API DAILY QUOTA EXHAUSTED. This API key has hit its daily request limit and cannot process more requests today. Please replace the GEMINI_API_KEY in .env with a fresh key from Google AI Studio.`);
+                throw new Error('DAILY_QUOTA_EXHAUSTED: Gemini API daily limit reached. Replace your API key.');
+            }
+            // --- DETECT TRANSIENT ERRORS (safe to retry with backoff) ---
+            const isTransient = errorMsg.includes('429') ||
+                errorMsgLower.includes('too many requests') ||
+                errorMsgLower.includes('quota exceeded') ||
+                errorMsg.includes('503') ||
+                errorMsgLower.includes('service unavailable') ||
+                errorMsgLower.includes('high demand') ||
+                errorMsg.includes('500') ||
+                errorMsgLower.includes('internal error') ||
+                errorMsg.includes('504') ||
+                errorMsgLower.includes('gateway timeout') ||
+                error.status === 429 ||
+                error.status === 503 ||
+                error.status === 500 ||
+                error.status === 504;
+            if (isTransient && attempt < maxAttempts) {
+                // Try to extract the exact retryDelay from Gemini error details (e.g. "retryDelay":"34s")
+                let sleepTime = initialDelayMs * Math.pow(2, attempt - 1);
+                try {
+                    const retryInfoDetail = error.errorDetails?.find?.((d) => d['@type']?.includes('RetryInfo'));
+                    if (retryInfoDetail?.retryDelay) {
+                        const suggestedSeconds = parseInt(String(retryInfoDetail.retryDelay).replace(/[^0-9]/g, ''), 10);
+                        if (!isNaN(suggestedSeconds) && suggestedSeconds > 0) {
+                            sleepTime = (suggestedSeconds + 5) * 1000; // +5s buffer on top of suggested delay
+                        }
+                    }
+                }
+                catch { /* ignore parsing errors */ }
+                logger.warn(`Gemini API Transient Error (${error.status || 'unknown'}). Retrying in ${sleepTime / 1000}s (Attempt ${attempt}/${maxAttempts})...`);
+                await delay(sleepTime);
+            }
+            else {
+                throw error;
+            }
+        }
+    }
 };
 /**
  * Grades a speaking task using Gemini 1.5 Flash
@@ -26,10 +120,12 @@ export const gradeSpeakingTask = async (audioUrl, taskPrompt) => {
       "${taskPrompt}"
 
       Your goal is to:
-      1. Provide a verbatim transcript of the audio.
+      1. Provide a highly accurate, word-for-word verbatim transcript of the student's speech in the audio. Do NOT omit, clean up, or summarize their words (include raw repetitions, filler words, or slips of the tongue if present).
+         - CRITICAL SILENCE/EMPTY RULE: If the audio file is completely silent, contains only background static/noise, or has no audible human speech answering the prompt, you MUST set "transcript" to "[No speech detected]", set all scoring bands (overall band and criteria subscores) to 1, and set the feedback to "No speech was detected in your recording. Please ensure your microphone is working and speak clearly into the mic.". Under no circumstances should you hallucinate, guess, or invent a spoken response if there is no human voice speaking.
       2. Assign a CELPIP Band (1 to 12) based on official standards.
       3. Evaluate four criteria (each 1 to 12): Coherence, Vocabulary, Listenability, and Task Fulfillment.
       4. Provide constructive feedback for the student in 2-3 sentences.
+      5. Provide a high-scoring (CELPIP Band 10-12) model spoken response (as text) that shows the student how they could have answered the prompt perfectly in ~150-200 words.
 
       IMPORTANT: Return your response ONLY as a JSON object with this exact structure:
       {
@@ -40,12 +136,13 @@ export const gradeSpeakingTask = async (audioUrl, taskPrompt) => {
           "vocabulary": Number,
           "listenability": Number,
           "taskFulfillment": Number,
-          "feedback": "Constructive feedback here..."
+          "feedback": "Constructive feedback here...",
+          "modelAnswer": "High-scoring model spoken response here..."
         }
       }
     `;
         // 3. Send to Gemini
-        const result = await model.generateContent([
+        const result = await generateContentWithRetry(getFlashModel(), [
             aiPrompt,
             {
                 inlineData: {
@@ -56,13 +153,15 @@ export const gradeSpeakingTask = async (audioUrl, taskPrompt) => {
         ]);
         const resultText = result.response.text();
         // 4. Parse and return JSON
-        const cleanedJson = resultText.replace(/```json|```/g, '').trim();
-        const parsedResult = JSON.parse(cleanedJson);
+        const parsedResult = parseJsonSafely(resultText);
         logger.info('AI grading completed successfully');
         return parsedResult;
     }
     catch (error) {
         logger.error('Gemini AI Service Error:', error);
+        if (error instanceof Error && error.message.includes('DAILY_QUOTA_EXHAUSTED')) {
+            throw error;
+        }
         throw new Error('Failed to process AI grading');
     }
 };
@@ -156,12 +255,17 @@ export const buildBlendedCelpipWritingFeedback = (taskNumber, overall, overallRe
         .filter(Boolean)
         .join('\n\n');
 };
-/** Phase 1: compact JSON — arrives much faster than a single mega-response so the UI / sockets update quickly. */
-export const gradeWritingTaskPhase1Scores = async (responseText, taskPrompt, taskNumber = 1) => {
-    const aiPrompt = `${celpipWritingSharedRubric(taskNumber)}
+/**
+ * Unified CELPIP Writing Grading: Scores + Detailed Narrative + Model Answer in one high-speed pass.
+ * This eliminates sequential latencies and network round-trips, making responses 'quick fast'.
+ */
+export const gradeWritingTask = async (responseText, taskPrompt, taskNumber = 1) => {
+    try {
+        logger.info(`Starting Unified CELPIP writing grading (task ${taskNumber})...`);
+        const aiPrompt = `${celpipWritingSharedRubric(taskNumber)}
 
-OUTPUT — return VALID JSON ONLY (no markdown fences). Do NOT include detailedFeedback, modelAnswer, or lineFeedback in this call.
-Exact shape:
+OUTPUT — return VALID JSON ONLY (no markdown fences). 
+EXACT shape:
 {
   "overallBand": number,
   "coherenceMeaning": number,
@@ -169,84 +273,26 @@ Exact shape:
   "readability": number,
   "taskFulfillment": number,
   "categoryBullets": {
-    "coherenceMeaning": ["3–4 bullets, each one short clause"],
+    "coherenceMeaning": ["3–4 bullets"],
     "vocabulary": ["3–4 bullets"],
     "readability": ["3–4 bullets"],
     "taskFulfillment": ["3–4 bullets"]
   },
-  "overallRemark": "One balanced paragraph, 3-5 sentences: strengths + weaknesses + level.",
+  "overallRemark": "One balanced paragraph summary.",
+  "detailedFeedback": "Multi-paragraph expanded analysis: Overall → Parameters. Reference student text.",
   "strengths": ["3–6 specific strengths"],
   "improvements": ["3–6 specific improvements"],
-  "quickTips": ["3–5 short actionable tips"]
-}
-
-Rules: All band fields integers 1–6. Tone: encouraging but honest; avoid generic copy-paste feedback.
-
-FULL TASK PROMPT:
-${taskPrompt}
-
-STUDENT RESPONSE:
-${responseText}
-`;
-    const scoredModel = genAI.getGenerativeModel({
-        model: 'gemini-flash-latest',
-        generationConfig: { maxOutputTokens: 1536 },
-    });
-    const result = await scoredModel.generateContent(aiPrompt);
-    const resultText = result.response.text();
-    const parsedResult = parseJsonSafely(resultText);
-    const cm = clampCelpip6(parsedResult?.coherenceMeaning);
-    const voc = clampCelpip6(parsedResult?.vocabulary);
-    const read = clampCelpip6(parsedResult?.readability);
-    const tf = clampCelpip6(parsedResult?.taskFulfillment);
-    const overall = clampCelpip6(parsedResult?.overallBand) || clampCelpip6((cm + voc + read + tf) / 4);
-    const strengths = safeStrList(parsedResult?.strengths, 8);
-    const improvements = safeStrList(parsedResult?.improvements, 8);
-    const quickTips = safeStrList(parsedResult?.quickTips, 6);
-    const rawBullets = (parsedResult?.categoryBullets || {});
-    const categoryBullets = {
-        coherenceMeaning: safeStrList(rawBullets?.coherenceMeaning, 4),
-        vocabulary: safeStrList(rawBullets?.vocabulary, 4),
-        readability: safeStrList(rawBullets?.readability, 4),
-        taskFulfillment: safeStrList(rawBullets?.taskFulfillment, 4),
-    };
-    const overallRemark = String(parsedResult?.overallRemark || '').trim();
-    return {
-        overallBand: overall,
-        aiBand: overall,
-        coherenceMeaning: cm,
-        vocabulary: voc,
-        readability: read,
-        taskFulfillment: tf,
-        taskAchievement: tf,
-        coherenceCohesion: cm,
-        lexicalResource: voc,
-        grammar: read,
-        categoryBullets,
-        overallRemark,
-        strengths,
-        improvements,
-        quickTips,
-    };
-};
-/** Phase 2: narrative + model answer — heavier; runs after bands are persisted. */
-export const gradeWritingTaskPhase2Narrative = async (responseText, taskPrompt, taskNumber, anchor) => {
-    const aiPrompt = `${celpipWritingSharedRubric(taskNumber)}
-
-Scores were already finalized for this submission — keep your narrative CONSISTENT with them:
-- Overall band: ${anchor.overallBand}/6
-- Earlier summary: ${anchor.overallRemark}
-
-OUTPUT — VALID JSON ONLY (no markdown fences), EXACT shape:
-{
-  "detailedFeedback": "Multi-paragraph CELPIP-trainer style: Overall summary → Coherence/Meaning → Vocabulary → Readability → Task fulfillment. Reference THIS student response specifically.",
+  "quickTips": ["3–5 short tips"],
   "lineFeedback": [
-    { "original": "short excerpt from student text", "issue": "CELPIP-focused issue", "fix": "suggested improvement" }
+    { "original": "student text excerpt", "issue": "explanation", "fix": "correction" }
   ],
-  "modelAnswer": "A strong CELPIP-style model response for THIS task (~150–220 words unless the prompt dictates otherwise)."
+  "modelAnswer": "A professional CELPIP-style study response (~150–220 words)."
 }
 
-Produce 3–6 lineFeedback items where useful; each original must be quoted from or clearly match the student's text.
+Rules: 
+- Bands are integers 1–6. 
+- feedback must be encouraging yet critical. 
+- lineFeedback: 3–6 items.
 
 FULL TASK PROMPT:
 ${taskPrompt}
@@ -254,80 +300,73 @@ ${taskPrompt}
 STUDENT RESPONSE:
 ${responseText}
 `;
-    const narrativeModel = genAI.getGenerativeModel({
-        model: 'gemini-flash-latest',
-        generationConfig: { maxOutputTokens: 6144 },
-    });
-    const result = await narrativeModel.generateContent(aiPrompt);
-    const resultText = result.response.text();
-    const parsedResult = parseJsonSafely(resultText);
-    const detailedFeedback = String(parsedResult?.detailedFeedback || '').trim();
-    const modelAnswer = String(parsedResult?.modelAnswer || '').trim();
-    const lineFeedback = Array.isArray(parsedResult?.lineFeedback)
-        ? parsedResult.lineFeedback
-            .slice(0, 6)
-            .map((row) => {
-            const r = row;
-            return {
-                original: String(r?.original || '').trim(),
-                issue: String(r?.issue || '').trim(),
-                fix: String(r?.fix || '').trim(),
-            };
-        })
-            .filter((row) => row.original || row.issue || row.fix)
-        : [];
-    return { detailedFeedback, modelAnswer, lineFeedback };
-};
-export const mergeWritingPhasesToGradeResult = (taskNumber, p1, p2) => {
-    const overall = p1.overallBand;
-    const blendedFeedback = buildBlendedCelpipWritingFeedback(taskNumber, overall, p1.overallRemark, p1.categoryBullets, p2.detailedFeedback, p1.strengths, p1.improvements, p1.quickTips, p2.lineFeedback, p2.modelAnswer);
-    return {
-        overallBand: overall,
-        aiBand: overall,
-        coherenceMeaning: p1.coherenceMeaning,
-        vocabulary: p1.vocabulary,
-        readability: p1.readability,
-        taskFulfillment: p1.taskFulfillment,
-        taskAchievement: p1.taskAchievement,
-        coherenceCohesion: p1.coherenceCohesion,
-        lexicalResource: p1.lexicalResource,
-        grammar: p1.grammar,
-        categoryBullets: p1.categoryBullets,
-        overallRemark: p1.overallRemark,
-        detailedFeedback: p2.detailedFeedback,
-        strengths: p1.strengths,
-        improvements: p1.improvements,
-        quickTips: p1.quickTips,
-        lineFeedback: p2.lineFeedback,
-        modelAnswer: p2.modelAnswer,
-        analysis: {
-            coherence: p1.coherenceMeaning,
-            vocabulary: p1.vocabulary,
-            readability: p1.readability,
-            taskFulfillment: p1.taskFulfillment,
-            feedback: blendedFeedback,
-        },
-    };
-};
-/**
- * CELPIP Writing (Tasks 1 & 2): band /6, four dimensions @25% each, CELPIP-style feedback (not IELTS).
- * Full single-call path (scripts / tests). Production worker uses phase1 + phase2 for faster first paint.
- */
-export const gradeWritingTask = async (responseText, taskPrompt, taskNumber = 1) => {
-    try {
-        logger.info(`Starting CELPIP writing grading (task ${taskNumber})...`);
-        const p1 = await gradeWritingTaskPhase1Scores(responseText, taskPrompt, taskNumber);
-        const p2 = await gradeWritingTaskPhase2Narrative(responseText, taskPrompt, taskNumber, {
-            overallBand: p1.overallBand,
-            overallRemark: p1.overallRemark,
+        const unifiedModel = new GoogleGenerativeAI(env.GEMINI_API_KEY).getGenerativeModel({
+            model: env.GEMINI_MODEL,
+            generationConfig: { maxOutputTokens: 6144, temperature: 0.7 },
         });
-        const merged = mergeWritingPhasesToGradeResult(taskNumber, p1, p2);
-        logger.info('CELPIP AI Writing grading completed successfully');
-        return merged;
+        const result = await generateContentWithRetry(unifiedModel, aiPrompt);
+        const resultText = result.response.text();
+        const parsedResult = parseJsonSafely(resultText);
+        // 1. Normalize scores
+        const cm = clampCelpip6(parsedResult?.coherenceMeaning);
+        const voc = clampCelpip6(parsedResult?.vocabulary);
+        const read = clampCelpip6(parsedResult?.readability);
+        const tf = clampCelpip6(parsedResult?.taskFulfillment);
+        const overall = clampCelpip6(parsedResult?.overallBand) || clampCelpip6((cm + voc + read + tf) / 4);
+        // 2. Normalize feedback blocks
+        const strengths = safeStrList(parsedResult?.strengths, 8);
+        const improvements = safeStrList(parsedResult?.improvements, 8);
+        const quickTips = safeStrList(parsedResult?.quickTips, 6);
+        const rawBullets = (parsedResult?.categoryBullets || {});
+        const categoryBullets = {
+            coherenceMeaning: safeStrList(rawBullets?.coherenceMeaning, 4),
+            vocabulary: safeStrList(rawBullets?.vocabulary, 4),
+            readability: safeStrList(rawBullets?.readability, 4),
+            taskFulfillment: safeStrList(rawBullets?.taskFulfillment, 4),
+        };
+        const lineFeedback = Array.isArray(parsedResult?.lineFeedback)
+            ? parsedResult.lineFeedback
+                .slice(0, 6)
+                .map((row) => ({
+                original: String(row?.original || '').trim(),
+                issue: String(row?.issue || '').trim(),
+                fix: String(row?.fix || '').trim(),
+            }))
+                .filter((row) => row.original || row.issue || row.fix)
+            : [];
+        const detailedFeedback = String(parsedResult?.detailedFeedback || '').trim();
+        const modelAnswer = String(parsedResult?.modelAnswer || '').trim();
+        const overallRemark = String(parsedResult?.overallRemark || '').trim();
+        // 3. Build the blended feedback string for storage/legacy views
+        const blendedFeedback = buildBlendedCelpipWritingFeedback(taskNumber, overall, overallRemark, categoryBullets, detailedFeedback, strengths, improvements, quickTips, lineFeedback, modelAnswer);
+        logger.info('Unified CELPIP AI Writing grading completed successfully');
+        return {
+            overallBand: overall,
+            aiBand: overall,
+            coherenceMeaning: cm,
+            vocabulary: voc,
+            readability: read,
+            taskFulfillment: tf,
+            categoryBullets,
+            overallRemark,
+            detailedFeedback,
+            strengths,
+            improvements,
+            quickTips,
+            lineFeedback,
+            modelAnswer,
+            analysis: {
+                coherence: cm,
+                vocabulary: voc,
+                readability: read,
+                taskFulfillment: tf,
+                feedback: blendedFeedback,
+            },
+        };
     }
     catch (error) {
-        logger.error('Gemini Writing AI Service Error:', error);
-        throw new Error('Failed to process AI writing grading');
+        logger.error('Unified Gemini Writing AI Service Error:', error);
+        throw new Error('Failed to process unified AI writing grading');
     }
 };
 export default { gradeSpeakingTask, gradeWritingTask };

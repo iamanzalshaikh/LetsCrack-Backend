@@ -1,4 +1,4 @@
-import { Queue, Worker, QueueEvents } from 'bullmq';
+import { Queue, Worker, QueueEvents, UnrecoverableError } from 'bullmq';
 import { redis } from '../config/redis.js';
 import logger from '../utils/logger.js';
 import TestSession from '../models/TestSession.js';
@@ -6,7 +6,7 @@ import QuestionBank from '../models/QuestionBank.js';
 import WritingQuestion from '../models/WritingQuestion.js';
 import SpeakingQuestion from '../models/SpeakingQuestion.js';
 import TestResult from '../models/TestResult.js';
-import { gradeSpeakingTask, gradeWritingTaskPhase1Scores, gradeWritingTaskPhase2Narrative, buildBlendedCelpipWritingFeedback, } from '../utils/gemini.service.js';
+import { gradeSpeakingTask, gradeWritingTask, } from '../utils/gemini.service.js';
 import { emitToUser } from '../sockets/emitter.js';
 const clampBand = (value) => {
     const numeric = Number(value);
@@ -166,6 +166,7 @@ const writeSessionBandsToResult = async (session, testSetNumber) => {
                 listenability: r.aiAnalysis?.listenability || 0,
                 taskFulfillment: r.aiAnalysis?.taskFulfillment || 0,
                 examinerFeedback: r.aiAnalysis?.feedback || '',
+                modelAnswer: r.aiAnalysis?.modelAnswer || '',
             })),
             finalBand: speakingBandNumeric ? String(speakingBandNumeric) : undefined,
         };
@@ -200,11 +201,33 @@ export const notificationWorker = new Worker('notifications', async (job) => {
 export const gradingQueue = new Queue('grading', {
     connection: redis,
     defaultJobOptions: {
-        attempts: 5, // AI APIs can be flaky, allow more retries
-        backoff: { type: 'exponential', delay: 2000 },
+        attempts: 3,
+        backoff: { type: 'exponential', delay: 10000 },
+        removeOnComplete: true,
+        removeOnFail: 50,
     },
 });
 export const gradingQueueEvents = new QueueEvents('grading', { connection: redis });
+/** Remove pending grading jobs so leaving a test does not keep burning Gemini quota. */
+export const cancelGradingJobsForSession = async (sessionId) => {
+    const jobs = await gradingQueue.getJobs(['waiting', 'delayed', 'paused', 'prioritized', 'failed']);
+    let removed = 0;
+    for (const job of jobs) {
+        if (job.data?.sessionId === sessionId) {
+            try {
+                await job.remove();
+                removed++;
+            }
+            catch (err) {
+                logger.warn(`Could not remove grading job ${job.id}:`, err);
+            }
+        }
+    }
+    if (removed > 0) {
+        logger.info(`Cancelled ${removed} pending grading job(s) for session ${sessionId}`);
+    }
+    return removed;
+};
 export const gradingWorker = new Worker('grading', async (job) => {
     const { sessionId, testSetNumber, taskNumber, subTask, module = 'speaking' } = job.data;
     logger.info(`Processing AI grading for Session ${sessionId}, ${module} Task ${taskNumber} ${subTask || ''}`);
@@ -213,6 +236,10 @@ export const gradingWorker = new Worker('grading', async (job) => {
         let session = await TestSession.findById(sessionId);
         if (!session)
             throw new Error('Session not found');
+        if (session.endedEarly) {
+            logger.info(`Skipping grading job ${job.id}: session ${sessionId} was ended early by student`);
+            return;
+        }
         // 2. Get the task prompt
         if (module === 'speaking') {
             const tn = Number(taskNumber);
@@ -234,12 +261,14 @@ export const gradingWorker = new Worker('grading', async (job) => {
             if (!recording || !recording.audioUrl)
                 throw new Error('Audio URL not found for task');
             const result = await gradeSpeakingTask(recording.audioUrl, question.prompt || '');
+            console.log(`\n=========================================\n[SPEAKING TRANSCRIPT] Task ${tn} (Session ${sessionId}):\n"${result.transcript}"\n=========================================\n`);
             const normalizedAnalysis = {
                 coherence: clampBand(result?.analysis?.coherence),
                 vocabulary: clampBand(result?.analysis?.vocabulary),
                 listenability: clampBand(result?.analysis?.listenability),
                 taskFulfillment: clampBand(result?.analysis?.taskFulfillment),
                 feedback: String(result?.analysis?.feedback || ''),
+                modelAnswer: String(result?.analysis?.modelAnswer || ''),
             };
             const normalizedBand = clampBand(result?.aiBand) ||
                 averageBand([
@@ -275,69 +304,26 @@ export const gradingWorker = new Worker('grading', async (job) => {
             if (!response || !response.responseText)
                 throw new Error('Response text not found for writing task');
             const taskPromptForAi = buildWritingEvaluationPrompt(question, tn);
-            const phase1 = await gradeWritingTaskPhase1Scores(response.responseText, taskPromptForAi, tn);
-            const normalizedBand = clampCelpipWriting6(phase1.overallBand) ||
-                clampCelpipWriting6((phase1.coherenceMeaning +
-                    phase1.vocabulary +
-                    phase1.readability +
-                    phase1.taskFulfillment) /
-                    4);
-            const partialFeedback = buildBlendedCelpipWritingFeedback(tn, normalizedBand, phase1.overallRemark, phase1.categoryBullets, '', phase1.strengths, phase1.improvements, phase1.quickTips, [], '');
-            const bulletsP1 = phase1.categoryBullets;
-            const normalizedAnalysisPartial = {
-                coherence: clampCelpipWriting6(phase1.coherenceMeaning),
-                vocabulary: clampCelpipWriting6(phase1.vocabulary),
-                readability: clampCelpipWriting6(phase1.readability),
-                taskFulfillment: clampCelpipWriting6(phase1.taskFulfillment),
-                feedback: partialFeedback,
-                taskAchievement: clampCelpipWriting6(phase1.taskAchievement),
-                coherenceCohesion: clampCelpipWriting6(phase1.coherenceCohesion),
-                lexicalResource: clampCelpipWriting6(phase1.lexicalResource),
-                grammar: clampCelpipWriting6(phase1.grammar),
-                strengths: phase1.strengths.slice(0, 8).map((s) => String(s)),
-                improvements: phase1.improvements.slice(0, 8).map((s) => String(s)),
-                quickTips: phase1.quickTips.slice(0, 6).map((s) => String(s)),
-                lineFeedback: [],
-                modelAnswer: '',
-                overallRemark: phase1.overallRemark,
-                detailedFeedback: '',
-                categoryBullets: {
-                    coherenceMeaning: bulletsP1.coherenceMeaning.slice(0, 4),
-                    vocabulary: bulletsP1.vocabulary.slice(0, 4),
-                    readability: bulletsP1.readability.slice(0, 4),
-                    taskFulfillment: bulletsP1.taskFulfillment.slice(0, 4),
-                },
-            };
-            let writingUpdateRes = await TestSession.updateOne({ _id: sessionId, 'writingResponses.taskNumber': taskNumber }, {
+            // Unified call handles scores, detailed narrative, model answer, etc. in one pass
+            const result = await gradeWritingTask(response.responseText, taskPromptForAi, tn);
+            const writingUpdateRes = await TestSession.updateOne({ _id: sessionId, 'writingResponses.taskNumber': taskNumber }, {
                 $set: {
-                    'writingResponses.$.aiBand': normalizedBand,
-                    'writingResponses.$.aiAnalysis': normalizedAnalysisPartial,
-                },
-            });
-            if (!writingUpdateRes.matchedCount) {
-                throw new Error('Writing response row not found for atomic grading update');
-            }
-            await emitGradingProgressAfterSessionUpdate(sessionId, testSetNumber, module, tn);
-            const phase2 = await gradeWritingTaskPhase2Narrative(response.responseText, taskPromptForAi, tn, {
-                overallBand: normalizedBand,
-                overallRemark: phase1.overallRemark,
-            });
-            const fullFeedback = buildBlendedCelpipWritingFeedback(tn, normalizedBand, phase1.overallRemark, phase1.categoryBullets, phase2.detailedFeedback, phase1.strengths, phase1.improvements, phase1.quickTips, phase2.lineFeedback, phase2.modelAnswer);
-            const normalizedAnalysisFull = {
-                ...normalizedAnalysisPartial,
-                feedback: fullFeedback,
-                lineFeedback: phase2.lineFeedback.slice(0, 6).map((item) => ({
-                    original: String(item?.original || ''),
-                    issue: String(item?.issue || ''),
-                    fix: String(item?.fix || ''),
-                })),
-                modelAnswer: String(phase2.modelAnswer || ''),
-                detailedFeedback: String(phase2.detailedFeedback || '').trim(),
-            };
-            writingUpdateRes = await TestSession.updateOne({ _id: sessionId, 'writingResponses.taskNumber': taskNumber }, {
-                $set: {
-                    'writingResponses.$.aiBand': normalizedBand,
-                    'writingResponses.$.aiAnalysis': normalizedAnalysisFull,
+                    'writingResponses.$.aiBand': result.overallBand,
+                    'writingResponses.$.aiAnalysis': {
+                        coherence: result.coherenceMeaning,
+                        vocabulary: result.vocabulary,
+                        readability: result.readability,
+                        taskFulfillment: result.taskFulfillment,
+                        feedback: result.analysis.feedback,
+                        strengths: result.strengths,
+                        improvements: result.improvements,
+                        quickTips: result.quickTips,
+                        lineFeedback: result.lineFeedback,
+                        modelAnswer: result.modelAnswer,
+                        overallRemark: result.overallRemark,
+                        detailedFeedback: result.detailedFeedback,
+                        categoryBullets: result.categoryBullets,
+                    },
                 },
             });
             if (!writingUpdateRes.matchedCount) {
@@ -348,6 +334,11 @@ export const gradingWorker = new Worker('grading', async (job) => {
         logger.info(`AI Grading successful for Session ${sessionId}, ${module} Task ${taskNumber}`);
     }
     catch (error) {
+        const errMsg = error instanceof Error ? error.message : String(error);
+        if (errMsg.includes('DAILY_QUOTA_EXHAUSTED')) {
+            logger.error(`Grading Job ${job.id}: daily quota exhausted — not retrying`);
+            throw new UnrecoverableError(errMsg);
+        }
         logger.error(`Grading Job ${job.id} Error:`, error);
         if (job.data?.sessionId) {
             const session = await TestSession.findById(job.data.sessionId).select('studentId');
@@ -356,13 +347,13 @@ export const gradingWorker = new Worker('grading', async (job) => {
                     sessionId: job.data.sessionId,
                     module: job.data.module || 'speaking',
                     taskNumber: job.data.taskNumber,
-                    message: 'AI grading failed for this task. Retry in progress.',
+                    message: 'AI grading failed for this task.',
                 });
             }
         }
         throw error;
     }
-}, { connection: redis, concurrency: 2 });
+}, { connection: redis, concurrency: 1 });
 // Event Listeners
 notificationWorker.on('completed', (job) => logger.info(`Notification job ${job.id} completed`));
 gradingWorker.on('completed', (job) => logger.info(`Grading job ${job.id} completed`));

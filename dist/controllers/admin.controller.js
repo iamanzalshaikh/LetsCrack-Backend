@@ -16,13 +16,14 @@ export const getTestSetQuestions = async (req, res, next) => {
         if (!Number.isFinite(n) || n < 1) {
             return res.status(400).json({ error: 'Invalid testSetNumber' });
         }
-        const [writing, speaking] = await Promise.all([
+        const [testSet, writing, speaking] = await Promise.all([
+            TestSet.findOne({ testSetNumber: n }).lean(),
             WritingQuestion.find({ testSetNumber: n }).lean(),
             SpeakingQuestion.find({ testSetNumber: n })
                 .sort({ taskNumber: 1, subTask: 1 })
                 .lean(),
         ]);
-        return res.json({ writing, speaking });
+        return res.json({ testSet, writing, speaking });
     }
     catch (error) {
         next(error);
@@ -105,19 +106,21 @@ export const bulkImportQuestions = async (req, res, next) => {
                 validationErrors.push({ index, error: 'Invalid testSetNumber' });
                 return;
             }
-            if ((module === 'writing' || module === 'speaking') && (!Number.isFinite(taskNumber) || taskNumber <= 0)) {
-                validationErrors.push({ index, error: 'taskNumber is required for writing/speaking' });
-                return;
-            }
-            if (module === 'writing' && (!Number.isFinite(Number(item?.timeLimit)) || Number(item.timeLimit) <= 0)) {
-                validationErrors.push({ index, error: 'timeLimit is required for writing' });
-                return;
-            }
-            if (module === 'speaking') {
-                if (!item?.prompt || !Number.isFinite(Number(item?.prepTime)) || !Number.isFinite(Number(item?.speakingTime))) {
-                    validationErrors.push({ index, error: 'prompt, prepTime and speakingTime are required for speaking' });
-                    return;
+            // Strict validation for Writing/Speaking ONLY on dryRun (import verification)
+            if (dryRun) {
+                if ((module === 'writing' || module === 'speaking') && (!Number.isFinite(taskNumber) || taskNumber <= 0)) {
+                    validationErrors.push({ index, error: 'taskNumber is required' });
                 }
+                if (module === 'writing' && (!Number.isFinite(Number(item?.timeLimit)) || Number(item.timeLimit) <= 0)) {
+                    validationErrors.push({ index, error: 'timeLimit is required for writing' });
+                }
+                if (module === 'speaking') {
+                    if (!item?.prompt || !Number.isFinite(Number(item?.prepTime)) || !Number.isFinite(Number(item?.speakingTime))) {
+                        validationErrors.push({ index, error: 'prompt, prepTime and speakingTime are required for speaking' });
+                    }
+                }
+                if (validationErrors.length > 0)
+                    return;
             }
             if ((module === 'reading' || module === 'listening') && (!Array.isArray(item?.mcqs) || item.mcqs.length === 0)) {
                 validationErrors.push({ index, error: 'mcqs[] is required for reading/listening' });
@@ -317,7 +320,7 @@ export const uploadMedia = async (req, res, next) => {
                 .status(400)
                 .json({ error: 'Only image, video, or audio uploads are supported on this endpoint' });
         }
-        const uploadedUrl = await uploadOnCloudinary(file.buffer, 'lce-question-media');
+        const uploadedUrl = await uploadOnCloudinary(file.buffer, { folder: 'lce-question-media' });
         if (!uploadedUrl) {
             return res.status(500).json({ error: 'Failed to upload media to Cloudinary' });
         }

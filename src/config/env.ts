@@ -25,4 +25,5 @@ export const env = cleanEnv(process.env, {
   CORS_ORIGIN: str({ default: 'http://localhost:3000' }),
   // Gemini AI
   GEMINI_API_KEY: str(),
+  GEMINI_MODEL: str({ default: 'gemini-flash-latest' }),
 });

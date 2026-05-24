@@ -1,8 +1,11 @@
 import TestSession from "../models/TestSession.js";
 import WritingQuestion from "../models/WritingQuestion.js";
 import SpeakingQuestion from "../models/SpeakingQuestion.js";
+import QuestionBank from "../models/QuestionBank.js";
+import TestSet from "../models/TestSet.js";
 import { uploadStudentSpeakingAudio } from "../utils/cloudinaryMedia.js";
 import { gradingQueue } from "../queues/index.js";
+import logger from "../utils/logger.js";
 import { emitToUser } from "../sockets/emitter.js";
 import { isActionAllowed } from "../utils/modeRules.js";
 import { computeEffectiveMediaPolicy } from "../utils/mediaPolicy.js";
@@ -21,8 +24,8 @@ export const saveRecording = async (req, res, next) => {
         const studentId = req.user.id;
         const { testSetNumber, taskNumber, duration, subTask: bodySub } = req.body;
         const file = req.file;
-        if (!file) {
-            return res.status(400).json({ error: "No audio file provided" });
+        if (!file || file.size === 0) {
+            return res.status(400).json({ error: "No audio file provided or file is empty" });
         }
         const tn = Number(taskNumber);
         const normalizedSub = tn === 5 ? (String(bodySub).toUpperCase() === "B" ? "B" : "A") : null;
@@ -84,18 +87,43 @@ export const saveRecording = async (req, res, next) => {
                 ...recordingData,
             };
         }
-        const [totalWritingTasks, totalSpeakingTasks] = await Promise.all([
-            WritingQuestion.countDocuments({ testSetNumber: Number(testSetNumber) }),
-            SpeakingQuestion.countDocuments({ testSetNumber: Number(testSetNumber) }),
-        ]);
-        const submittedWriting = session.writingResponses.filter((r) => Boolean(r.submittedAt)).length;
-        const submittedSpeaking = session.speakingRecordings.length;
-        const totalExpected = totalWritingTasks + totalSpeakingTasks;
-        if (totalExpected > 0 && submittedWriting + submittedSpeaking >= totalExpected) {
+        let totalExpected = 0;
+        let submittedCount = 0;
+        if (selectedModules.includes("writing")) {
+            const totalWritingTasks = await WritingQuestion.countDocuments({ testSetNumber: Number(testSetNumber) });
+            totalExpected += totalWritingTasks;
+            submittedCount += session.writingResponses.filter((r) => Boolean(r.submittedAt)).length;
+        }
+        if (selectedModules.includes("speaking")) {
+            const totalSpeakingTasks = await SpeakingQuestion.countDocuments({ testSetNumber: Number(testSetNumber) });
+            totalExpected += totalSpeakingTasks;
+            submittedCount += session.speakingRecordings.length;
+        }
+        if (selectedModules.includes("reading")) {
+            const readingTask = await QuestionBank.findOne({ module: "reading", testSetNumber: Number(testSetNumber) });
+            const readingCount = readingTask?.mcqs?.length || 0;
+            totalExpected += readingCount;
+            submittedCount += session.mcqResponses.filter((r) => r.module === "reading").length;
+        }
+        if (selectedModules.includes("listening")) {
+            const listeningTask = await QuestionBank.findOne({ module: "listening", testSetNumber: Number(testSetNumber) });
+            const listeningCount = listeningTask?.mcqs?.length || 0;
+            totalExpected += listeningCount;
+            submittedCount += session.mcqResponses.filter((r) => r.module === "listening").length;
+        }
+        if (totalExpected > 0 && submittedCount >= totalExpected) {
             session.status = "submitted";
             session.completedAt = new Date();
         }
         await session.save();
+        if (session.endedEarly) {
+            return res.json({
+                recordingId: session._id,
+                audioUrl,
+                uploadedAt: recordingData.submittedAt,
+                aiGradingStatus: "skipped",
+            });
+        }
         await gradingQueue.add(`grade-session-${session._id}-task-${tn}-${normalizedSub || "x"}`, {
             sessionId: session._id,
             testSetNumber: Number(testSetNumber),
@@ -144,13 +172,14 @@ export const getTask = async (req, res, next) => {
         }
         const tn = Number(taskNumber);
         const st = tn === 5 ? (String(qSub).toUpperCase() === "B" ? "B" : "A") : null;
-        const [task, totalSpeakingTasks] = await Promise.all([
+        const [task, totalSpeakingTasks, testSet] = await Promise.all([
             SpeakingQuestion.findOne({
                 testSetNumber: Number(testSetNumber),
                 taskNumber: tn,
                 subTask: st,
             }),
             SpeakingQuestion.countDocuments({ testSetNumber: Number(testSetNumber) }),
+            TestSet.findOne({ testSetNumber: Number(testSetNumber) }).select('instructions').lean(),
         ]);
         if (!task)
             return res.status(404).json({ error: "Task not found" });
@@ -168,11 +197,12 @@ export const getTask = async (req, res, next) => {
             canUseHints: isActionAllowed(session.mode || "practice", "speaking", "canUseHints"),
             canViewSampleResponses: isActionAllowed(session.mode || "practice", "speaking", "canViewSampleResponses"),
         };
-        res.json({
+        const responsePayload = {
             taskId: task._id,
             prompt: task.prompt,
-            introInstruction: task.introInstruction,
-            speakingIntroVideoUrl: task.speakingIntroVideoUrl,
+            // Fallback to TestSet global instructions if task-level is empty
+            introInstruction: task.introInstruction || testSet?.instructions?.speakingInstructionText,
+            speakingIntroVideoUrl: task.speakingIntroVideoUrl || testSet?.instructions?.speakingInstructionVideoUrl,
             task5IntroVideoUrl: task.task5IntroVideoUrl,
             imageUrl: task.imageUrl,
             imageUrlA: task.imageUrlA,
@@ -189,6 +219,9 @@ export const getTask = async (req, res, next) => {
             subTask: task.subTask,
             totalSpeakingTasks,
             positionInSet: positionInSpeakingFlow(tn, st),
+            testSet: {
+                instructions: testSet?.instructions
+            },
             mediaPolicy,
             modePolicy,
             serverMediaState: {
@@ -197,7 +230,14 @@ export const getTask = async (req, res, next) => {
                 blockedCount: runtimeState?.blockedCount || 0,
                 lastEventAt: runtimeState?.lastEventAt || null,
             },
+        };
+        logger.info('[DEBUG] Speaking getTask payload: %o', {
+            taskId: task._id,
+            hasTestSet: !!testSet,
+            globalSpeakingVideo: testSet?.instructions?.speakingInstructionVideoUrl,
+            sentSpeakingVideo: responsePayload.speakingIntroVideoUrl
         });
+        res.json(responsePayload);
     }
     catch (error) {
         next(error);

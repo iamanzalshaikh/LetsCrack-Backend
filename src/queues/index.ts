@@ -195,6 +195,7 @@ const writeSessionBandsToResult = async (session: any, testSetNumber: number) =>
         listenability: r.aiAnalysis?.listenability || 0,
         taskFulfillment: r.aiAnalysis?.taskFulfillment || 0,
         examinerFeedback: r.aiAnalysis?.feedback || '',
+        modelAnswer: r.aiAnalysis?.modelAnswer || '',
       })),
       finalBand: speakingBandNumeric ? String(speakingBandNumeric) : undefined,
     } as any;
@@ -309,12 +310,15 @@ export const gradingWorker = new Worker(
 
         const result = await gradeSpeakingTask(recording.audioUrl, question.prompt || '');
 
+        console.log(`\n=========================================\n[SPEAKING TRANSCRIPT] Task ${tn} (Session ${sessionId}):\n"${result.transcript}"\n=========================================\n`);
+
         const normalizedAnalysis = {
           coherence: clampBand(result?.analysis?.coherence),
           vocabulary: clampBand(result?.analysis?.vocabulary),
           listenability: clampBand(result?.analysis?.listenability),
           taskFulfillment: clampBand(result?.analysis?.taskFulfillment),
           feedback: String(result?.analysis?.feedback || ''),
+          modelAnswer: String(result?.analysis?.modelAnswer || ''),
         };
         const normalizedBand =
           clampBand(result?.aiBand) ||

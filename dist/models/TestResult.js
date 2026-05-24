@@ -15,7 +15,8 @@ const TestResultSchema = new mongoose.Schema({
                 vocabulary: Number,
                 listenability: Number,
                 taskFulfillment: Number,
-                examinerFeedback: String
+                examinerFeedback: String,
+                modelAnswer: String
             }],
         finalBand: String
     },

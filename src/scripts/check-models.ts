@@ -6,6 +6,8 @@ const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY || '');
 
 async function listModels() {
   try {
+    const key = process.env.GEMINI_API_KEY || '';
+    console.log('Using API Key:', key.substring(0, 10) + '...' + key.substring(key.length - 5));
     console.log('Listing all available models...');
     // The SDK for Node has a slightly different way to list models sometimes, 
     // but we can try iterating through common ones or using the REST API if needed.
@@ -21,7 +23,7 @@ async function listModels() {
             console.log(`✅ Success with ${modelName}: ${result.response.text()}`);
             return; // Stop if we find one that works
         } catch (e: any) {
-            console.log(`❌ Failed with ${modelName}: ${e.message.substring(0, 100)}...`);
+            console.log(`❌ Failed with ${modelName}:`, e);
         }
     }
   } catch (e: any) {

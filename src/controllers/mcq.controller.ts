@@ -2,6 +2,8 @@ import { Request, Response, NextFunction } from 'express';
 import TestSession from '../models/TestSession.js';
 import QuestionBank from '../models/QuestionBank.js';
 import TestResult from '../models/TestResult.js';
+import WritingQuestion from '../models/WritingQuestion.js';
+import SpeakingQuestion from '../models/SpeakingQuestion.js';
 import { calculateBand } from '../utils/bandCalculator.js';
 import logger from '../utils/logger.js';
 import { isActionAllowed } from '../utils/modeRules.js';
@@ -95,6 +97,52 @@ export const submitMcqAnswers = async (req: Request, res: Response, next: NextFu
     ];
     session.set('mcqResponses', nextResponses);
     session.mcqScore = correctCount;
+
+    // Check if the entire test session is complete and update status
+    let totalExpected = 0;
+    let submittedCount = 0;
+
+    if (selectedModules.includes('writing')) {
+      const totalWritingTasks = await WritingQuestion.countDocuments({ testSetNumber: Number(testSetNumber) });
+      totalExpected += totalWritingTasks;
+      submittedCount += session.writingResponses.filter((r) => Boolean(r.submittedAt)).length;
+    }
+    if (selectedModules.includes('speaking')) {
+      const totalSpeakingTasks = await SpeakingQuestion.countDocuments({ testSetNumber: Number(testSetNumber) });
+      totalExpected += totalSpeakingTasks;
+      submittedCount += session.speakingRecordings.length;
+    }
+    if (selectedModules.includes('reading')) {
+      const readingTask = await QuestionBank.findOne({ module: 'reading', testSetNumber: Number(testSetNumber) });
+      const readingCount = readingTask?.mcqs?.length || 0;
+      totalExpected += readingCount;
+      submittedCount += nextResponses.filter((r: any) => r.module === 'reading').length;
+    }
+    if (selectedModules.includes('listening')) {
+      const listeningTask = await QuestionBank.findOne({ module: 'listening', testSetNumber: Number(testSetNumber) });
+      const listeningCount = listeningTask?.mcqs?.length || 0;
+      totalExpected += listeningCount;
+      submittedCount += nextResponses.filter((r: any) => r.module === 'listening').length;
+    }
+
+    const gradedWriting = session.writingResponses.filter((r) => (r.aiBand || 0) > 0).length;
+    const gradedSpeaking = session.speakingRecordings.filter((r) => (r.aiBand || 0) > 0).length;
+    const readingTask = await QuestionBank.findOne({ module: 'reading', testSetNumber: Number(testSetNumber) });
+    const readingCount = readingTask?.mcqs?.length || 0;
+    const listeningTask = await QuestionBank.findOne({ module: 'listening', testSetNumber: Number(testSetNumber) });
+    const listeningCount = listeningTask?.mcqs?.length || 0;
+    const gradedReading = nextResponses.filter((r: any) => r.module === 'reading').length > 0 ? readingCount : 0;
+    const gradedListening = nextResponses.filter((r: any) => r.module === 'listening').length > 0 ? listeningCount : 0;
+    const totalGraded = gradedWriting + gradedSpeaking + gradedReading + gradedListening;
+
+    if (totalExpected > 0 && totalGraded >= totalExpected) {
+      session.status = 'graded';
+      session.completedAt = new Date();
+    } else if (totalExpected > 0 && submittedCount >= totalExpected) {
+      session.status = 'submitted';
+      session.completedAt = new Date();
+    }
+
     await session.save();
 
     let result = await TestResult.findOne({ testSessionId: session._id });

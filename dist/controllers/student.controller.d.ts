@@ -19,6 +19,10 @@ export declare const getResultStatus: (req: Request, res: Response, next: NextFu
  */
 export declare const startTest: (req: Request, res: Response, next: NextFunction) => Promise<Response<any, Record<string, any>> | undefined>;
 /**
+ * End an in-progress test early: mark session submitted, stop queued AI grading.
+ */
+export declare const endTestSession: (req: Request, res: Response, next: NextFunction) => Promise<Response<any, Record<string, any>> | undefined>;
+/**
  * Confirm pre-test instructions for a session
  */
 export declare const confirmInstructions: (req: Request, res: Response, next: NextFunction) => Promise<Response<any, Record<string, any>> | undefined>;

@@ -20,7 +20,7 @@ const WritingQuestionSchema = new mongoose.Schema({
     },
     testSetNumber: { type: Number, required: true },
     taskNumber: { type: Number, required: true, min: 1, max: 2 },
-    timeLimit: { type: Number, required: true }, // seconds
+    timeLimit: { type: Number, required: false }, // seconds
     scenario: {
         subheading: String,
         backgroundParagraph: String,

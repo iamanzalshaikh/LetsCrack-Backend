@@ -16,4 +16,5 @@ export declare const env: Readonly<{
     FRONTEND_URL: string;
     CORS_ORIGIN: string;
     GEMINI_API_KEY: string;
+    GEMINI_MODEL: string;
 } & import("envalid").CleanedEnvAccessors>;

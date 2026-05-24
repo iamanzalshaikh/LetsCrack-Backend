@@ -5,7 +5,6 @@ declare const WritingQuestionSchema: mongoose.Schema<any, mongoose.Model<any, an
     testSetNumber: number;
     taskNumber: number;
     module: "writing";
-    timeLimit: number;
     questions: mongoose.Types.DocumentArray<{
         options: string[];
         questionNumber: number;
@@ -31,6 +30,7 @@ declare const WritingQuestionSchema: mongoose.Schema<any, mongoose.Model<any, an
     optionB?: string | null | undefined;
     imageUrl?: string | null | undefined;
     sampleResponse?: string | null | undefined;
+    timeLimit?: number | null | undefined;
     scenario?: {
         taskInstructions: string[];
         subheading?: string | null | undefined;
@@ -42,7 +42,6 @@ declare const WritingQuestionSchema: mongoose.Schema<any, mongoose.Model<any, an
     testSetNumber: number;
     taskNumber: number;
     module: "writing";
-    timeLimit: number;
     questions: mongoose.Types.DocumentArray<{
         options: string[];
         questionNumber: number;
@@ -68,6 +67,7 @@ declare const WritingQuestionSchema: mongoose.Schema<any, mongoose.Model<any, an
     optionB?: string | null | undefined;
     imageUrl?: string | null | undefined;
     sampleResponse?: string | null | undefined;
+    timeLimit?: number | null | undefined;
     scenario?: {
         taskInstructions: string[];
         subheading?: string | null | undefined;
@@ -79,7 +79,6 @@ declare const WritingQuestionSchema: mongoose.Schema<any, mongoose.Model<any, an
     testSetNumber: number;
     taskNumber: number;
     module: "writing";
-    timeLimit: number;
     questions: mongoose.Types.DocumentArray<{
         options: string[];
         questionNumber: number;
@@ -105,6 +104,7 @@ declare const WritingQuestionSchema: mongoose.Schema<any, mongoose.Model<any, an
     optionB?: string | null | undefined;
     imageUrl?: string | null | undefined;
     sampleResponse?: string | null | undefined;
+    timeLimit?: number | null | undefined;
     scenario?: {
         taskInstructions: string[];
         subheading?: string | null | undefined;
@@ -121,7 +121,6 @@ declare const WritingQuestion: mongoose.Model<{
     testSetNumber: number;
     taskNumber: number;
     module: "writing";
-    timeLimit: number;
     questions: mongoose.Types.DocumentArray<{
         options: string[];
         questionNumber: number;
@@ -147,6 +146,7 @@ declare const WritingQuestion: mongoose.Model<{
     optionB?: string | null | undefined;
     imageUrl?: string | null | undefined;
     sampleResponse?: string | null | undefined;
+    timeLimit?: number | null | undefined;
     scenario?: {
         taskInstructions: string[];
         subheading?: string | null | undefined;
@@ -158,7 +158,6 @@ declare const WritingQuestion: mongoose.Model<{
     testSetNumber: number;
     taskNumber: number;
     module: "writing";
-    timeLimit: number;
     questions: mongoose.Types.DocumentArray<{
         options: string[];
         questionNumber: number;
@@ -184,6 +183,7 @@ declare const WritingQuestion: mongoose.Model<{
     optionB?: string | null | undefined;
     imageUrl?: string | null | undefined;
     sampleResponse?: string | null | undefined;
+    timeLimit?: number | null | undefined;
     scenario?: {
         taskInstructions: string[];
         subheading?: string | null | undefined;
@@ -195,7 +195,6 @@ declare const WritingQuestion: mongoose.Model<{
     testSetNumber: number;
     taskNumber: number;
     module: "writing";
-    timeLimit: number;
     questions: mongoose.Types.DocumentArray<{
         options: string[];
         questionNumber: number;
@@ -221,6 +220,7 @@ declare const WritingQuestion: mongoose.Model<{
     optionB?: string | null | undefined;
     imageUrl?: string | null | undefined;
     sampleResponse?: string | null | undefined;
+    timeLimit?: number | null | undefined;
     scenario?: {
         taskInstructions: string[];
         subheading?: string | null | undefined;
@@ -236,7 +236,6 @@ declare const WritingQuestion: mongoose.Model<{
     testSetNumber: number;
     taskNumber: number;
     module: "writing";
-    timeLimit: number;
     questions: mongoose.Types.DocumentArray<{
         options: string[];
         questionNumber: number;
@@ -262,6 +261,7 @@ declare const WritingQuestion: mongoose.Model<{
     optionB?: string | null | undefined;
     imageUrl?: string | null | undefined;
     sampleResponse?: string | null | undefined;
+    timeLimit?: number | null | undefined;
     scenario?: {
         taskInstructions: string[];
         subheading?: string | null | undefined;
@@ -273,7 +273,6 @@ declare const WritingQuestion: mongoose.Model<{
     testSetNumber: number;
     taskNumber: number;
     module: "writing";
-    timeLimit: number;
     questions: mongoose.Types.DocumentArray<{
         options: string[];
         questionNumber: number;
@@ -299,6 +298,7 @@ declare const WritingQuestion: mongoose.Model<{
     optionB?: string | null | undefined;
     imageUrl?: string | null | undefined;
     sampleResponse?: string | null | undefined;
+    timeLimit?: number | null | undefined;
     scenario?: {
         taskInstructions: string[];
         subheading?: string | null | undefined;
@@ -310,7 +310,6 @@ declare const WritingQuestion: mongoose.Model<{
     testSetNumber: number;
     taskNumber: number;
     module: "writing";
-    timeLimit: number;
     questions: mongoose.Types.DocumentArray<{
         options: string[];
         questionNumber: number;
@@ -336,6 +335,7 @@ declare const WritingQuestion: mongoose.Model<{
     optionB?: string | null | undefined;
     imageUrl?: string | null | undefined;
     sampleResponse?: string | null | undefined;
+    timeLimit?: number | null | undefined;
     scenario?: {
         taskInstructions: string[];
         subheading?: string | null | undefined;

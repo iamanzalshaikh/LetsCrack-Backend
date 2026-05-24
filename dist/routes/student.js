@@ -1,5 +1,5 @@
 import express from 'express';
-import { getResults, getProgress, getCertificate, getAiEvaluationReport, startTest, getAvailableTests, getResultStatus, confirmInstructions, getTestInstructions, recordMediaRuntimeEvent, } from '../controllers/student.controller.js';
+import { getResults, getProgress, getCertificate, getAiEvaluationReport, startTest, getAvailableTests, getResultStatus, confirmInstructions, endTestSession, getTestInstructions, recordMediaRuntimeEvent, } from '../controllers/student.controller.js';
 import { authMiddleware } from '../middlewares/auth.middleware.js';
 const router = express.Router();
 // Apply auth middleware to all student routes
@@ -36,6 +36,14 @@ router.post('/start-test/:testSetNumber', startTest);
  *     tags: [Student]
  */
 router.post('/session/:sessionId/confirm-instructions', confirmInstructions);
+/**
+ * @swagger
+ * /api/student/session/:sessionId/end:
+ *   post:
+ *     summary: End test early and cancel pending AI grading jobs
+ *     tags: [Student]
+ */
+router.post('/session/:sessionId/end', endTestSession);
 /**
  * @swagger
  * /api/student/test-instructions/:testSetNumber:

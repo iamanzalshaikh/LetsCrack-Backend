@@ -1478,7 +1478,7 @@ function takeTextChunk(doc, text, width, maxHeight, fontSize, lineGap, fontFace 
     if (!t)
         return { chunk: '', rest: '' };
     /** Align with doc.text(+height:) – too conservative a budget ⇒ tiny chunks ⇒ huge page counts */
-    const budget = Math.max(14, maxHeight * 0.985);
+    const budget = Math.max(14, maxHeight - 1); // 0.985 is too loose, use nearly full height
     doc.font(fontFace).fontSize(fontSize);
     const opts = { width, lineGap };
     const hFull = doc.heightOfString(t, opts);
@@ -1741,6 +1741,8 @@ export const generateAiEvaluationReport = (res, data) => {
         const detailedText = buildDetailedBody(task).trim();
         const bodyFontSize = 9;
         const lineGap = 3;
+        /** Details always start on a fresh page to avoid overwriting summary or leaving half-blank sheets */
+        doc.addPage();
         const renderOneDetailedPageChrome = () => {
             doc.rect(0, 0, pageWidth, pageHeight).fill(LC.cream);
             const headerBottom = drawBrandHeader(doc, pageWidth, margin, tn, true) + 2;
@@ -1756,11 +1758,11 @@ export const generateAiEvaluationReport = (res, data) => {
             const contentTop = headerBottom + barH + 2;
             /** Use real page maxY so layout matches PDFKit (avoids phantom page breaks + half-empty sheets). */
             const pageMaxY = doc.page.maxY();
-            const contentBottom = Math.min(pageMaxY - 6, pageHeight - margin - 12);
+            const contentBottom = Math.min(pageMaxY - 2, pageHeight - margin - 4); // 6->2, 12->4
             drawLinedContentBackground(doc, margin, contentTop + 12, contentBottom - 16, contentW);
             drawWatermarkLogo(doc, pageWidth, (contentTop + contentBottom) / 2, 1.6);
             const contentTopY = contentTop + 4;
-            const bottomY = contentBottom - 14;
+            const bottomY = contentBottom - 6; // 14 -> 6
             doc.x = margin;
             doc.y = contentTopY;
             return { contentTopY, bottomY };
@@ -1835,8 +1837,8 @@ export const generateAiEvaluationReport = (res, data) => {
             }
             needsTightParagraphOpen = false;
             /** Keep a little room above footer band; slack follows our logical cursor */
-            const slackNow = () => zoneBottom - yCursor - 6;
-            const mustMoveToNextSheet = () => slackNow() < 12;
+            const slackNow = () => zoneBottom - yCursor - 2; // 6 -> 2
+            const mustMoveToNextSheet = () => slackNow() < 8; // 12 -> 8
             let drewAnythingOnSheet = false;
             while (segmentsQueue.length > 0) {
                 if (mustMoveToNextSheet())
@@ -1889,7 +1891,7 @@ export const generateAiEvaluationReport = (res, data) => {
                 const paraLead = isFirstBlockOnPage ? 0 : 2;
                 const yStartDraw = yCursor + paraLead;
                 /** One vertical budget shared by chunk splitter + drawn box → no spill past zoneBottom */
-                const availH = Math.max(10, zoneBottom - yStartDraw - 6);
+                const availH = Math.max(8, zoneBottom - yStartDraw); // Use every available pixel
                 const { chunk, rest } = takeTextChunk(doc, paragraph, contentW, availH, bodyFontSize, lineGap);
                 let bodyBlock = chunk;
                 if (!bodyBlock.length && paragraph.length > 0) {
@@ -1943,7 +1945,7 @@ export const generateAiEvaluationReport = (res, data) => {
         if (idx > 0)
             doc.addPage();
         drawSummaryPage(task);
-        doc.addPage();
+        // drawDetailedPages now handles its own initial addPage() to ensure clean transitions
         drawDetailedPages(task);
     });
     const range = doc.bufferedPageRange();

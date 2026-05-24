@@ -5,7 +5,10 @@ import logger from './logger.js';
 
 /** Fresh client per call so a replaced GEMINI_API_KEY in .env works after server restart. */
 const getFlashModel = () =>
-  new GoogleGenerativeAI(env.GEMINI_API_KEY).getGenerativeModel({ model: 'gemini-flash-latest' });
+  new GoogleGenerativeAI(env.GEMINI_API_KEY).getGenerativeModel({
+    model: env.GEMINI_MODEL,
+    generationConfig: { maxOutputTokens: 2544, temperature: 0.3 }
+  });
 
 const parseJsonSafely = (text: string) => {
   let cleaned = text.replace(/```json|```/g, '').trim();
@@ -135,10 +138,12 @@ export const gradeSpeakingTask = async (audioUrl: string, taskPrompt: string) =>
       "${taskPrompt}"
 
       Your goal is to:
-      1. Provide a verbatim transcript of the audio.
+      1. Provide a highly accurate, word-for-word verbatim transcript of the student's speech in the audio. Do NOT omit, clean up, or summarize their words (include raw repetitions, filler words, or slips of the tongue if present).
+         - CRITICAL SILENCE/EMPTY RULE: If the audio file is completely silent, contains only background static/noise, or has no audible human speech answering the prompt, you MUST set "transcript" to "[No speech detected]", set all scoring bands (overall band and criteria subscores) to 1, and set the feedback to "No speech was detected in your recording. Please ensure your microphone is working and speak clearly into the mic.". Under no circumstances should you hallucinate, guess, or invent a spoken response if there is no human voice speaking.
       2. Assign a CELPIP Band (1 to 12) based on official standards.
       3. Evaluate four criteria (each 1 to 12): Coherence, Vocabulary, Listenability, and Task Fulfillment.
       4. Provide constructive feedback for the student in 2-3 sentences.
+      5. Provide a high-scoring (CELPIP Band 10-12) model spoken response (as text) that shows the student how they could have answered the prompt perfectly in ~150-200 words.
 
       IMPORTANT: Return your response ONLY as a JSON object with this exact structure:
       {
@@ -149,7 +154,8 @@ export const gradeSpeakingTask = async (audioUrl: string, taskPrompt: string) =>
           "vocabulary": Number,
           "listenability": Number,
           "taskFulfillment": Number,
-          "feedback": "Constructive feedback here..."
+          "feedback": "Constructive feedback here...",
+          "modelAnswer": "High-scoring model spoken response here..."
         }
       }
     `;
@@ -346,7 +352,7 @@ ${responseText}
 `;
 
     const unifiedModel = new GoogleGenerativeAI(env.GEMINI_API_KEY).getGenerativeModel({
-      model: 'gemini-flash-latest',
+      model: env.GEMINI_MODEL,
       generationConfig: { maxOutputTokens: 6144, temperature: 0.7 },
     });
 
