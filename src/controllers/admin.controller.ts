@@ -11,7 +11,7 @@ import logger from '../utils/logger.js';
 import { uploadOnCloudinary } from '../config/cloudinary.js';
 
 /**
- * Load writing + speaking questions for a test set (admin builder)
+ * Load writing + speaking + reading questions for a test set (admin builder)
  */
 export const getTestSetQuestions = async (req: Request, res: Response, next: NextFunction) => {
   try {
@@ -19,14 +19,17 @@ export const getTestSetQuestions = async (req: Request, res: Response, next: Nex
     if (!Number.isFinite(n) || n < 1) {
       return res.status(400).json({ error: 'Invalid testSetNumber' });
     }
-    const [testSet, writing, speaking] = await Promise.all([
+    const [testSet, writing, speaking, reading] = await Promise.all([
       TestSet.findOne({ testSetNumber: n }).lean(),
       WritingQuestion.find({ testSetNumber: n }).lean(),
       SpeakingQuestion.find({ testSetNumber: n })
         .sort({ taskNumber: 1, subTask: 1 })
         .lean(),
+      QuestionBank.find({ testSetNumber: n, module: 'reading' })
+        .sort({ taskNumber: 1 })
+        .lean(),
     ]);
-    return res.json({ testSet, writing, speaking });
+    return res.json({ testSet, writing, speaking, reading });
   } catch (error) {
     next(error);
   }
@@ -75,10 +78,20 @@ export const createOrUpdateQuestion = async (req: Request, res: Response, next: 
         { new: true, upsert: true },
       );
     } else {
-      // Reading/Listening remain in QuestionBank for MCQ payload compatibility.
+      // Reading/Listening remain in QuestionBank. Match by taskNumber for parts.
       question = await QuestionBank.findOneAndUpdate(
-        { module, testSetNumber: Number(testSetNumber) },
-        { module, testSetNumber: Number(testSetNumber), ...content, updatedAt: new Date() },
+        {
+          module,
+          testSetNumber: Number(testSetNumber),
+          ...(taskNumber ? { taskNumber: Number(taskNumber) } : {})
+        },
+        {
+          module,
+          testSetNumber: Number(testSetNumber),
+          ...(taskNumber ? { taskNumber: Number(taskNumber) } : {}),
+          ...content,
+          updatedAt: new Date()
+        },
         { new: true, upsert: true },
       );
     }
@@ -142,9 +155,13 @@ export const bulkImportQuestions = async (req: Request, res: Response, next: Nex
         }
         if (validationErrors.length > 0) return;
       }
-      if ((module === 'reading' || module === 'listening') && (!Array.isArray(item?.mcqs) || item.mcqs.length === 0)) {
-        validationErrors.push({ index, error: 'mcqs[] is required for reading/listening' });
-        return;
+      if (dryRun && (module === 'reading' || module === 'listening')) {
+        const hasMcqs = Array.isArray(item?.mcqs) && item.mcqs.length > 0;
+        const hasSections = item?.rightPanel && Array.isArray(item?.rightPanel?.sections) && item.rightPanel.sections.length > 0;
+        if (!hasMcqs && !hasSections) {
+          validationErrors.push({ index, error: 'mcqs[] or rightPanel.sections[] is required for reading/listening' });
+          return;
+        }
       }
 
       const { module: _module, testSetNumber: _set, taskNumber: _task, ...rest } = item;
@@ -200,11 +217,13 @@ export const bulkImportQuestions = async (req: Request, res: Response, next: Nex
             filter: {
               module,
               testSetNumber,
+              ...(taskNumber ? { taskNumber } : {}),
             },
             update: {
               $set: {
                 module,
                 testSetNumber,
+                ...(taskNumber ? { taskNumber } : {}),
                 ...rest,
                 updatedAt: new Date(),
               },
@@ -416,6 +435,10 @@ export const createOrUpdateTestSet = async (req: Request, res: Response, next: N
         writingInstructionVideoUrl: incomingInstructions.writingInstructionVideoUrl || '',
         speakingInstructionText: incomingInstructions.speakingInstructionText || '',
         speakingInstructionVideoUrl: incomingInstructions.speakingInstructionVideoUrl || '',
+        readingInstructionText: incomingInstructions.readingInstructionText || '',
+        readingInstructionVideoUrl: incomingInstructions.readingInstructionVideoUrl || '',
+        listeningInstructionText: incomingInstructions.listeningInstructionText || '',
+        listeningInstructionVideoUrl: incomingInstructions.listeningInstructionVideoUrl || '',
       },
       status: nextStatus,
       updatedAt: new Date(),
