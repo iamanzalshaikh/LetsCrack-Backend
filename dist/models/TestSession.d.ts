@@ -214,18 +214,21 @@ declare const TestSessionSchema: mongoose.Schema<any, mongoose.Model<any, any, a
         subTask?: string | null | undefined;
     }>;
     mcqResponses: mongoose.Types.DocumentArray<{
-        selectedOption?: number | null | undefined;
-        questionId?: mongoose.Types.ObjectId | null | undefined;
+        selectedOption: number;
+        questionId: string;
+        answer?: any;
         isCorrect?: boolean | null | undefined;
         module?: "listening" | "reading" | null | undefined;
     }, mongoose.Types.Subdocument<mongoose.mongo.BSON.ObjectId, any, {
-        selectedOption?: number | null | undefined;
-        questionId?: mongoose.Types.ObjectId | null | undefined;
+        selectedOption: number;
+        questionId: string;
+        answer?: any;
         isCorrect?: boolean | null | undefined;
         module?: "listening" | "reading" | null | undefined;
     }> & {
-        selectedOption?: number | null | undefined;
-        questionId?: mongoose.Types.ObjectId | null | undefined;
+        selectedOption: number;
+        questionId: string;
+        answer?: any;
         isCorrect?: boolean | null | undefined;
         module?: "listening" | "reading" | null | undefined;
     }>;
@@ -255,10 +258,17 @@ declare const TestSessionSchema: mongoose.Schema<any, mongoose.Model<any, any, a
         module?: "listening" | "reading" | "writing" | "speaking" | null | undefined;
         lastEventAt?: NativeDate | null | undefined;
     }>;
+    answers: Map<string, any>;
+    reviewStatus: Map<string, boolean>;
     completedAt?: NativeDate | null | undefined;
     purgeAt?: NativeDate | null | undefined;
     purgedAt?: NativeDate | null | undefined;
     writingCursorTask?: number | null | undefined;
+    attemptState?: {
+        currentPart: number;
+        currentSection: number;
+    } | null | undefined;
+    remainingSeconds?: number | null | undefined;
 }, mongoose.Document<unknown, {}, mongoose.FlatRecord<{
     studentId: mongoose.Types.ObjectId;
     testSetNumber: number;
@@ -474,18 +484,21 @@ declare const TestSessionSchema: mongoose.Schema<any, mongoose.Model<any, any, a
         subTask?: string | null | undefined;
     }>;
     mcqResponses: mongoose.Types.DocumentArray<{
-        selectedOption?: number | null | undefined;
-        questionId?: mongoose.Types.ObjectId | null | undefined;
+        selectedOption: number;
+        questionId: string;
+        answer?: any;
         isCorrect?: boolean | null | undefined;
         module?: "listening" | "reading" | null | undefined;
     }, mongoose.Types.Subdocument<mongoose.mongo.BSON.ObjectId, any, {
-        selectedOption?: number | null | undefined;
-        questionId?: mongoose.Types.ObjectId | null | undefined;
+        selectedOption: number;
+        questionId: string;
+        answer?: any;
         isCorrect?: boolean | null | undefined;
         module?: "listening" | "reading" | null | undefined;
     }> & {
-        selectedOption?: number | null | undefined;
-        questionId?: mongoose.Types.ObjectId | null | undefined;
+        selectedOption: number;
+        questionId: string;
+        answer?: any;
         isCorrect?: boolean | null | undefined;
         module?: "listening" | "reading" | null | undefined;
     }>;
@@ -515,10 +528,17 @@ declare const TestSessionSchema: mongoose.Schema<any, mongoose.Model<any, any, a
         module?: "listening" | "reading" | "writing" | "speaking" | null | undefined;
         lastEventAt?: NativeDate | null | undefined;
     }>;
+    answers: Map<string, any>;
+    reviewStatus: Map<string, boolean>;
     completedAt?: NativeDate | null | undefined;
     purgeAt?: NativeDate | null | undefined;
     purgedAt?: NativeDate | null | undefined;
     writingCursorTask?: number | null | undefined;
+    attemptState?: {
+        currentPart: number;
+        currentSection: number;
+    } | null | undefined;
+    remainingSeconds?: number | null | undefined;
 }>, {}, mongoose.DefaultSchemaOptions> & mongoose.FlatRecord<{
     studentId: mongoose.Types.ObjectId;
     testSetNumber: number;
@@ -734,18 +754,21 @@ declare const TestSessionSchema: mongoose.Schema<any, mongoose.Model<any, any, a
         subTask?: string | null | undefined;
     }>;
     mcqResponses: mongoose.Types.DocumentArray<{
-        selectedOption?: number | null | undefined;
-        questionId?: mongoose.Types.ObjectId | null | undefined;
+        selectedOption: number;
+        questionId: string;
+        answer?: any;
         isCorrect?: boolean | null | undefined;
         module?: "listening" | "reading" | null | undefined;
     }, mongoose.Types.Subdocument<mongoose.mongo.BSON.ObjectId, any, {
-        selectedOption?: number | null | undefined;
-        questionId?: mongoose.Types.ObjectId | null | undefined;
+        selectedOption: number;
+        questionId: string;
+        answer?: any;
         isCorrect?: boolean | null | undefined;
         module?: "listening" | "reading" | null | undefined;
     }> & {
-        selectedOption?: number | null | undefined;
-        questionId?: mongoose.Types.ObjectId | null | undefined;
+        selectedOption: number;
+        questionId: string;
+        answer?: any;
         isCorrect?: boolean | null | undefined;
         module?: "listening" | "reading" | null | undefined;
     }>;
@@ -775,10 +798,17 @@ declare const TestSessionSchema: mongoose.Schema<any, mongoose.Model<any, any, a
         module?: "listening" | "reading" | "writing" | "speaking" | null | undefined;
         lastEventAt?: NativeDate | null | undefined;
     }>;
+    answers: Map<string, any>;
+    reviewStatus: Map<string, boolean>;
     completedAt?: NativeDate | null | undefined;
     purgeAt?: NativeDate | null | undefined;
     purgedAt?: NativeDate | null | undefined;
     writingCursorTask?: number | null | undefined;
+    attemptState?: {
+        currentPart: number;
+        currentSection: number;
+    } | null | undefined;
+    remainingSeconds?: number | null | undefined;
 }> & {
     _id: mongoose.Types.ObjectId;
 } & {
@@ -999,18 +1029,21 @@ declare const TestSession: mongoose.Model<{
         subTask?: string | null | undefined;
     }>;
     mcqResponses: mongoose.Types.DocumentArray<{
-        selectedOption?: number | null | undefined;
-        questionId?: mongoose.Types.ObjectId | null | undefined;
+        selectedOption: number;
+        questionId: string;
+        answer?: any;
         isCorrect?: boolean | null | undefined;
         module?: "listening" | "reading" | null | undefined;
     }, mongoose.Types.Subdocument<mongoose.mongo.BSON.ObjectId, any, {
-        selectedOption?: number | null | undefined;
-        questionId?: mongoose.Types.ObjectId | null | undefined;
+        selectedOption: number;
+        questionId: string;
+        answer?: any;
         isCorrect?: boolean | null | undefined;
         module?: "listening" | "reading" | null | undefined;
     }> & {
-        selectedOption?: number | null | undefined;
-        questionId?: mongoose.Types.ObjectId | null | undefined;
+        selectedOption: number;
+        questionId: string;
+        answer?: any;
         isCorrect?: boolean | null | undefined;
         module?: "listening" | "reading" | null | undefined;
     }>;
@@ -1040,10 +1073,17 @@ declare const TestSession: mongoose.Model<{
         module?: "listening" | "reading" | "writing" | "speaking" | null | undefined;
         lastEventAt?: NativeDate | null | undefined;
     }>;
+    answers: Map<string, any>;
+    reviewStatus: Map<string, boolean>;
     completedAt?: NativeDate | null | undefined;
     purgeAt?: NativeDate | null | undefined;
     purgedAt?: NativeDate | null | undefined;
     writingCursorTask?: number | null | undefined;
+    attemptState?: {
+        currentPart: number;
+        currentSection: number;
+    } | null | undefined;
+    remainingSeconds?: number | null | undefined;
 }, {}, {}, {}, mongoose.Document<unknown, {}, {
     studentId: mongoose.Types.ObjectId;
     testSetNumber: number;
@@ -1259,18 +1299,21 @@ declare const TestSession: mongoose.Model<{
         subTask?: string | null | undefined;
     }>;
     mcqResponses: mongoose.Types.DocumentArray<{
-        selectedOption?: number | null | undefined;
-        questionId?: mongoose.Types.ObjectId | null | undefined;
+        selectedOption: number;
+        questionId: string;
+        answer?: any;
         isCorrect?: boolean | null | undefined;
         module?: "listening" | "reading" | null | undefined;
     }, mongoose.Types.Subdocument<mongoose.mongo.BSON.ObjectId, any, {
-        selectedOption?: number | null | undefined;
-        questionId?: mongoose.Types.ObjectId | null | undefined;
+        selectedOption: number;
+        questionId: string;
+        answer?: any;
         isCorrect?: boolean | null | undefined;
         module?: "listening" | "reading" | null | undefined;
     }> & {
-        selectedOption?: number | null | undefined;
-        questionId?: mongoose.Types.ObjectId | null | undefined;
+        selectedOption: number;
+        questionId: string;
+        answer?: any;
         isCorrect?: boolean | null | undefined;
         module?: "listening" | "reading" | null | undefined;
     }>;
@@ -1300,10 +1343,17 @@ declare const TestSession: mongoose.Model<{
         module?: "listening" | "reading" | "writing" | "speaking" | null | undefined;
         lastEventAt?: NativeDate | null | undefined;
     }>;
+    answers: Map<string, any>;
+    reviewStatus: Map<string, boolean>;
     completedAt?: NativeDate | null | undefined;
     purgeAt?: NativeDate | null | undefined;
     purgedAt?: NativeDate | null | undefined;
     writingCursorTask?: number | null | undefined;
+    attemptState?: {
+        currentPart: number;
+        currentSection: number;
+    } | null | undefined;
+    remainingSeconds?: number | null | undefined;
 }, {}, mongoose.DefaultSchemaOptions> & {
     studentId: mongoose.Types.ObjectId;
     testSetNumber: number;
@@ -1519,18 +1569,21 @@ declare const TestSession: mongoose.Model<{
         subTask?: string | null | undefined;
     }>;
     mcqResponses: mongoose.Types.DocumentArray<{
-        selectedOption?: number | null | undefined;
-        questionId?: mongoose.Types.ObjectId | null | undefined;
+        selectedOption: number;
+        questionId: string;
+        answer?: any;
         isCorrect?: boolean | null | undefined;
         module?: "listening" | "reading" | null | undefined;
     }, mongoose.Types.Subdocument<mongoose.mongo.BSON.ObjectId, any, {
-        selectedOption?: number | null | undefined;
-        questionId?: mongoose.Types.ObjectId | null | undefined;
+        selectedOption: number;
+        questionId: string;
+        answer?: any;
         isCorrect?: boolean | null | undefined;
         module?: "listening" | "reading" | null | undefined;
     }> & {
-        selectedOption?: number | null | undefined;
-        questionId?: mongoose.Types.ObjectId | null | undefined;
+        selectedOption: number;
+        questionId: string;
+        answer?: any;
         isCorrect?: boolean | null | undefined;
         module?: "listening" | "reading" | null | undefined;
     }>;
@@ -1560,10 +1613,17 @@ declare const TestSession: mongoose.Model<{
         module?: "listening" | "reading" | "writing" | "speaking" | null | undefined;
         lastEventAt?: NativeDate | null | undefined;
     }>;
+    answers: Map<string, any>;
+    reviewStatus: Map<string, boolean>;
     completedAt?: NativeDate | null | undefined;
     purgeAt?: NativeDate | null | undefined;
     purgedAt?: NativeDate | null | undefined;
     writingCursorTask?: number | null | undefined;
+    attemptState?: {
+        currentPart: number;
+        currentSection: number;
+    } | null | undefined;
+    remainingSeconds?: number | null | undefined;
 } & {
     _id: mongoose.Types.ObjectId;
 } & {
@@ -1783,18 +1843,21 @@ declare const TestSession: mongoose.Model<{
         subTask?: string | null | undefined;
     }>;
     mcqResponses: mongoose.Types.DocumentArray<{
-        selectedOption?: number | null | undefined;
-        questionId?: mongoose.Types.ObjectId | null | undefined;
+        selectedOption: number;
+        questionId: string;
+        answer?: any;
         isCorrect?: boolean | null | undefined;
         module?: "listening" | "reading" | null | undefined;
     }, mongoose.Types.Subdocument<mongoose.mongo.BSON.ObjectId, any, {
-        selectedOption?: number | null | undefined;
-        questionId?: mongoose.Types.ObjectId | null | undefined;
+        selectedOption: number;
+        questionId: string;
+        answer?: any;
         isCorrect?: boolean | null | undefined;
         module?: "listening" | "reading" | null | undefined;
     }> & {
-        selectedOption?: number | null | undefined;
-        questionId?: mongoose.Types.ObjectId | null | undefined;
+        selectedOption: number;
+        questionId: string;
+        answer?: any;
         isCorrect?: boolean | null | undefined;
         module?: "listening" | "reading" | null | undefined;
     }>;
@@ -1824,10 +1887,17 @@ declare const TestSession: mongoose.Model<{
         module?: "listening" | "reading" | "writing" | "speaking" | null | undefined;
         lastEventAt?: NativeDate | null | undefined;
     }>;
+    answers: Map<string, any>;
+    reviewStatus: Map<string, boolean>;
     completedAt?: NativeDate | null | undefined;
     purgeAt?: NativeDate | null | undefined;
     purgedAt?: NativeDate | null | undefined;
     writingCursorTask?: number | null | undefined;
+    attemptState?: {
+        currentPart: number;
+        currentSection: number;
+    } | null | undefined;
+    remainingSeconds?: number | null | undefined;
 }, mongoose.Document<unknown, {}, mongoose.FlatRecord<{
     studentId: mongoose.Types.ObjectId;
     testSetNumber: number;
@@ -2043,18 +2113,21 @@ declare const TestSession: mongoose.Model<{
         subTask?: string | null | undefined;
     }>;
     mcqResponses: mongoose.Types.DocumentArray<{
-        selectedOption?: number | null | undefined;
-        questionId?: mongoose.Types.ObjectId | null | undefined;
+        selectedOption: number;
+        questionId: string;
+        answer?: any;
         isCorrect?: boolean | null | undefined;
         module?: "listening" | "reading" | null | undefined;
     }, mongoose.Types.Subdocument<mongoose.mongo.BSON.ObjectId, any, {
-        selectedOption?: number | null | undefined;
-        questionId?: mongoose.Types.ObjectId | null | undefined;
+        selectedOption: number;
+        questionId: string;
+        answer?: any;
         isCorrect?: boolean | null | undefined;
         module?: "listening" | "reading" | null | undefined;
     }> & {
-        selectedOption?: number | null | undefined;
-        questionId?: mongoose.Types.ObjectId | null | undefined;
+        selectedOption: number;
+        questionId: string;
+        answer?: any;
         isCorrect?: boolean | null | undefined;
         module?: "listening" | "reading" | null | undefined;
     }>;
@@ -2084,10 +2157,17 @@ declare const TestSession: mongoose.Model<{
         module?: "listening" | "reading" | "writing" | "speaking" | null | undefined;
         lastEventAt?: NativeDate | null | undefined;
     }>;
+    answers: Map<string, any>;
+    reviewStatus: Map<string, boolean>;
     completedAt?: NativeDate | null | undefined;
     purgeAt?: NativeDate | null | undefined;
     purgedAt?: NativeDate | null | undefined;
     writingCursorTask?: number | null | undefined;
+    attemptState?: {
+        currentPart: number;
+        currentSection: number;
+    } | null | undefined;
+    remainingSeconds?: number | null | undefined;
 }>, {}, mongoose.DefaultSchemaOptions> & mongoose.FlatRecord<{
     studentId: mongoose.Types.ObjectId;
     testSetNumber: number;
@@ -2303,18 +2383,21 @@ declare const TestSession: mongoose.Model<{
         subTask?: string | null | undefined;
     }>;
     mcqResponses: mongoose.Types.DocumentArray<{
-        selectedOption?: number | null | undefined;
-        questionId?: mongoose.Types.ObjectId | null | undefined;
+        selectedOption: number;
+        questionId: string;
+        answer?: any;
         isCorrect?: boolean | null | undefined;
         module?: "listening" | "reading" | null | undefined;
     }, mongoose.Types.Subdocument<mongoose.mongo.BSON.ObjectId, any, {
-        selectedOption?: number | null | undefined;
-        questionId?: mongoose.Types.ObjectId | null | undefined;
+        selectedOption: number;
+        questionId: string;
+        answer?: any;
         isCorrect?: boolean | null | undefined;
         module?: "listening" | "reading" | null | undefined;
     }> & {
-        selectedOption?: number | null | undefined;
-        questionId?: mongoose.Types.ObjectId | null | undefined;
+        selectedOption: number;
+        questionId: string;
+        answer?: any;
         isCorrect?: boolean | null | undefined;
         module?: "listening" | "reading" | null | undefined;
     }>;
@@ -2344,10 +2427,17 @@ declare const TestSession: mongoose.Model<{
         module?: "listening" | "reading" | "writing" | "speaking" | null | undefined;
         lastEventAt?: NativeDate | null | undefined;
     }>;
+    answers: Map<string, any>;
+    reviewStatus: Map<string, boolean>;
     completedAt?: NativeDate | null | undefined;
     purgeAt?: NativeDate | null | undefined;
     purgedAt?: NativeDate | null | undefined;
     writingCursorTask?: number | null | undefined;
+    attemptState?: {
+        currentPart: number;
+        currentSection: number;
+    } | null | undefined;
+    remainingSeconds?: number | null | undefined;
 }> & {
     _id: mongoose.Types.ObjectId;
 } & {

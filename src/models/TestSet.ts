@@ -26,6 +26,7 @@ const TestSetSchema = new mongoose.Schema({
     readingInstructionVideoUrl: { type: String, default: '' },
     listeningInstructionText: { type: String, default: '' },
     listeningInstructionVideoUrl: { type: String, default: '' },
+    listeningTestSoundUrl: { type: String, default: '' },
   },
   status: { type: String, enum: ['draft', 'published'], default: 'draft', index: true },
   version: { type: Number, default: 1 },

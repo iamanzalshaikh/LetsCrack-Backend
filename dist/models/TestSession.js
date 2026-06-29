@@ -81,9 +81,11 @@ const TestSessionSchema = new mongoose.Schema({
     // MCQ Support (Reading/Listening)
     mcqResponses: [{
             module: { type: String, enum: ['reading', 'listening'] },
-            questionId: mongoose.Schema.Types.ObjectId,
-            selectedOption: Number,
-            isCorrect: Boolean
+            /** String ids (e.g. rd-p4-q1) for QuestionBank sections; ObjectId for legacy MCQs */
+            questionId: { type: String, required: true },
+            selectedOption: { type: Number, default: -1 },
+            answer: mongoose.Schema.Types.Mixed,
+            isCorrect: Boolean,
         }],
     mcqScore: { type: Number, default: 0 },
     mediaRuntime: [{
@@ -94,8 +96,19 @@ const TestSessionSchema = new mongoose.Schema({
             seekCount: { type: Number, default: 0 },
             blockedCount: { type: Number, default: 0 },
             lastEventAt: Date,
-        }]
+        }],
+    // Generic exam engine persistent state
+    attemptState: {
+        currentPart: { type: Number, default: 1 },
+        currentSection: { type: Number, default: 1 }
+    },
+    remainingSeconds: { type: Number },
+    answers: { type: Map, of: mongoose.Schema.Types.Mixed, default: {} },
+    reviewStatus: { type: Map, of: Boolean, default: {} }
 });
+TestSessionSchema.index({ studentId: 1, status: 1 });
+TestSessionSchema.index({ studentId: 1, testSetNumber: 1, mode: 1 });
+TestSessionSchema.index({ purgeAt: 1, purgedAt: 1 });
 const TestSession = mongoose.model('TestSession', TestSessionSchema);
 export default TestSession;
 export { TestSessionSchema };

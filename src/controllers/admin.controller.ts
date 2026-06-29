@@ -9,6 +9,7 @@ import TestSet from '../models/TestSet.js';
 import { sendResultEmail } from '../utils/email.js';
 import logger from '../utils/logger.js';
 import { uploadOnCloudinary } from '../config/cloudinary.js';
+import { getOrSetTestSetCache, clearCachedQuestions, clearPublishedTestsCache } from '../utils/cache.js';
 
 /**
  * Load writing + speaking + reading questions for a test set (admin builder)
@@ -19,17 +20,8 @@ export const getTestSetQuestions = async (req: Request, res: Response, next: Nex
     if (!Number.isFinite(n) || n < 1) {
       return res.status(400).json({ error: 'Invalid testSetNumber' });
     }
-    const [testSet, writing, speaking, reading] = await Promise.all([
-      TestSet.findOne({ testSetNumber: n }).lean(),
-      WritingQuestion.find({ testSetNumber: n }).lean(),
-      SpeakingQuestion.find({ testSetNumber: n })
-        .sort({ taskNumber: 1, subTask: 1 })
-        .lean(),
-      QuestionBank.find({ testSetNumber: n, module: 'reading' })
-        .sort({ taskNumber: 1 })
-        .lean(),
-    ]);
-    return res.json({ testSet, writing, speaking, reading });
+    const data = await getOrSetTestSetCache(n);
+    return res.json(data);
   } catch (error) {
     next(error);
   }
@@ -95,6 +87,8 @@ export const createOrUpdateQuestion = async (req: Request, res: Response, next: 
         { new: true, upsert: true },
       );
     }
+
+    await clearCachedQuestions(Number(testSetNumber));
 
     res.json({ 
       success: true, 
@@ -273,6 +267,19 @@ export const bulkImportQuestions = async (req: Request, res: Response, next: Nex
       (speakingResult?.upsertedCount || 0) +
       (mcqResult?.upsertedCount || 0);
 
+    const uniqueTestSets = new Set<number>();
+    questions.forEach((item) => {
+      const ts = Number(item?.testSetNumber);
+      if (Number.isFinite(ts) && ts > 0) {
+        uniqueTestSets.add(ts);
+      }
+    });
+
+    await Promise.all([
+      ...Array.from(uniqueTestSets).map((ts) => clearCachedQuestions(ts)),
+      clearPublishedTestsCache(),
+    ]);
+
     const importedCount = writingOperations.length + speakingOperations.length + mcqOperations.length;
     return res.json({
       success: true,
@@ -439,6 +446,7 @@ export const createOrUpdateTestSet = async (req: Request, res: Response, next: N
         readingInstructionVideoUrl: incomingInstructions.readingInstructionVideoUrl || '',
         listeningInstructionText: incomingInstructions.listeningInstructionText || '',
         listeningInstructionVideoUrl: incomingInstructions.listeningInstructionVideoUrl || '',
+        listeningTestSoundUrl: incomingInstructions.listeningTestSoundUrl || '',
       },
       status: nextStatus,
       updatedAt: new Date(),
@@ -465,6 +473,11 @@ export const createOrUpdateTestSet = async (req: Request, res: Response, next: N
       );
     }
 
+    await Promise.all([
+      clearCachedQuestions(Number(testSetNumber)),
+      clearPublishedTestsCache(),
+    ]);
+
     return res.json({ success: true, testSet });
   } catch (error) {
     next(error);
@@ -484,6 +497,12 @@ export const publishTestSet = async (req: Request, res: Response, next: NextFunc
       { new: true },
     );
     if (!testSet) return res.status(404).json({ error: 'Test set not found' });
+
+    await Promise.all([
+      clearCachedQuestions(Number(testSetNumber)),
+      clearPublishedTestsCache(),
+    ]);
+
     return res.json({ success: true, testSet });
   } catch (error) {
     next(error);
@@ -497,7 +516,7 @@ export const getTestSets = async (req: Request, res: Response, next: NextFunctio
   try {
     const { status } = req.query;
     const filter = status ? { status } : {};
-    const sets = await TestSet.find(filter).sort({ testSetNumber: 1 });
+    const sets = await TestSet.find(filter).sort({ testSetNumber: 1 }).lean();
     return res.json({ testSets: sets });
   } catch (error) {
     next(error);

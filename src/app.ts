@@ -4,6 +4,7 @@ import helmet from 'helmet';
 import morgan from 'morgan';
 import cookieParser from 'cookie-parser';
 import swaggerUi from 'swagger-ui-express';
+import compression from 'compression';
 import { env } from './config/env.js';
 import { swaggerSpec } from './docs/swagger.js';
 import { errorHandler } from './middlewares/error.middleware.js';
@@ -20,6 +21,7 @@ const app: Application = express();
 
 // Middlewares
 app.use(helmet());
+app.use(compression());
 const localDevOrigins = new Set([
   'http://localhost:5173',
   'http://localhost:5174',

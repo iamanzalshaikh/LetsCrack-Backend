@@ -7,8 +7,9 @@ import User from '../models/User.js';
 import TestSet from '../models/TestSet.js';
 import { sendResultEmail } from '../utils/email.js';
 import { uploadOnCloudinary } from '../config/cloudinary.js';
+import { getOrSetTestSetCache, clearCachedQuestions, clearPublishedTestsCache } from '../utils/cache.js';
 /**
- * Load writing + speaking questions for a test set (admin builder)
+ * Load writing + speaking + reading questions for a test set (admin builder)
  */
 export const getTestSetQuestions = async (req, res, next) => {
     try {
@@ -16,14 +17,8 @@ export const getTestSetQuestions = async (req, res, next) => {
         if (!Number.isFinite(n) || n < 1) {
             return res.status(400).json({ error: 'Invalid testSetNumber' });
         }
-        const [testSet, writing, speaking] = await Promise.all([
-            TestSet.findOne({ testSetNumber: n }).lean(),
-            WritingQuestion.find({ testSetNumber: n }).lean(),
-            SpeakingQuestion.find({ testSetNumber: n })
-                .sort({ taskNumber: 1, subTask: 1 })
-                .lean(),
-        ]);
-        return res.json({ testSet, writing, speaking });
+        const data = await getOrSetTestSetCache(n);
+        return res.json(data);
     }
     catch (error) {
         next(error);
@@ -63,9 +58,20 @@ export const createOrUpdateQuestion = async (req, res, next) => {
             }, { new: true, upsert: true });
         }
         else {
-            // Reading/Listening remain in QuestionBank for MCQ payload compatibility.
-            question = await QuestionBank.findOneAndUpdate({ module, testSetNumber: Number(testSetNumber) }, { module, testSetNumber: Number(testSetNumber), ...content, updatedAt: new Date() }, { new: true, upsert: true });
+            // Reading/Listening remain in QuestionBank. Match by taskNumber for parts.
+            question = await QuestionBank.findOneAndUpdate({
+                module,
+                testSetNumber: Number(testSetNumber),
+                ...(taskNumber ? { taskNumber: Number(taskNumber) } : {})
+            }, {
+                module,
+                testSetNumber: Number(testSetNumber),
+                ...(taskNumber ? { taskNumber: Number(taskNumber) } : {}),
+                ...content,
+                updatedAt: new Date()
+            }, { new: true, upsert: true });
         }
+        await clearCachedQuestions(Number(testSetNumber));
         res.json({
             success: true,
             questionId: question._id,
@@ -122,9 +128,13 @@ export const bulkImportQuestions = async (req, res, next) => {
                 if (validationErrors.length > 0)
                     return;
             }
-            if ((module === 'reading' || module === 'listening') && (!Array.isArray(item?.mcqs) || item.mcqs.length === 0)) {
-                validationErrors.push({ index, error: 'mcqs[] is required for reading/listening' });
-                return;
+            if (dryRun && (module === 'reading' || module === 'listening')) {
+                const hasMcqs = Array.isArray(item?.mcqs) && item.mcqs.length > 0;
+                const hasSections = item?.rightPanel && Array.isArray(item?.rightPanel?.sections) && item.rightPanel.sections.length > 0;
+                if (!hasMcqs && !hasSections) {
+                    validationErrors.push({ index, error: 'mcqs[] or rightPanel.sections[] is required for reading/listening' });
+                    return;
+                }
             }
             const { module: _module, testSetNumber: _set, taskNumber: _task, ...rest } = item;
             if (module === 'writing') {
@@ -181,11 +191,13 @@ export const bulkImportQuestions = async (req, res, next) => {
                         filter: {
                             module,
                             testSetNumber,
+                            ...(taskNumber ? { taskNumber } : {}),
                         },
                         update: {
                             $set: {
                                 module,
                                 testSetNumber,
+                                ...(taskNumber ? { taskNumber } : {}),
                                 ...rest,
                                 updatedAt: new Date(),
                             },
@@ -227,6 +239,17 @@ export const bulkImportQuestions = async (req, res, next) => {
         const totalUpserted = (writingResult?.upsertedCount || 0) +
             (speakingResult?.upsertedCount || 0) +
             (mcqResult?.upsertedCount || 0);
+        const uniqueTestSets = new Set();
+        questions.forEach((item) => {
+            const ts = Number(item?.testSetNumber);
+            if (Number.isFinite(ts) && ts > 0) {
+                uniqueTestSets.add(ts);
+            }
+        });
+        await Promise.all([
+            ...Array.from(uniqueTestSets).map((ts) => clearCachedQuestions(ts)),
+            clearPublishedTestsCache(),
+        ]);
         const importedCount = writingOperations.length + speakingOperations.length + mcqOperations.length;
         return res.json({
             success: true,
@@ -361,6 +384,11 @@ export const createOrUpdateTestSet = async (req, res, next) => {
                 writingInstructionVideoUrl: incomingInstructions.writingInstructionVideoUrl || '',
                 speakingInstructionText: incomingInstructions.speakingInstructionText || '',
                 speakingInstructionVideoUrl: incomingInstructions.speakingInstructionVideoUrl || '',
+                readingInstructionText: incomingInstructions.readingInstructionText || '',
+                readingInstructionVideoUrl: incomingInstructions.readingInstructionVideoUrl || '',
+                listeningInstructionText: incomingInstructions.listeningInstructionText || '',
+                listeningInstructionVideoUrl: incomingInstructions.listeningInstructionVideoUrl || '',
+                listeningTestSoundUrl: incomingInstructions.listeningTestSoundUrl || '',
             },
             status: nextStatus,
             updatedAt: new Date(),
@@ -377,6 +405,10 @@ export const createOrUpdateTestSet = async (req, res, next) => {
             // Insert: $set fields + $setOnInsert for version/createdAt
             testSet = await TestSet.findOneAndUpdate({ testSetNumber: Number(testSetNumber) }, { $set: payload, $setOnInsert: { version: 1, createdAt: new Date() } }, { new: true, upsert: true });
         }
+        await Promise.all([
+            clearCachedQuestions(Number(testSetNumber)),
+            clearPublishedTestsCache(),
+        ]);
         return res.json({ success: true, testSet });
     }
     catch (error) {
@@ -392,6 +424,10 @@ export const publishTestSet = async (req, res, next) => {
         const testSet = await TestSet.findOneAndUpdate({ testSetNumber: Number(testSetNumber) }, { $set: { status: 'published', publishedAt: new Date(), updatedAt: new Date() }, $inc: { version: 1 } }, { new: true });
         if (!testSet)
             return res.status(404).json({ error: 'Test set not found' });
+        await Promise.all([
+            clearCachedQuestions(Number(testSetNumber)),
+            clearPublishedTestsCache(),
+        ]);
         return res.json({ success: true, testSet });
     }
     catch (error) {
@@ -405,7 +441,7 @@ export const getTestSets = async (req, res, next) => {
     try {
         const { status } = req.query;
         const filter = status ? { status } : {};
-        const sets = await TestSet.find(filter).sort({ testSetNumber: 1 });
+        const sets = await TestSet.find(filter).sort({ testSetNumber: 1 }).lean();
         return res.json({ testSets: sets });
     }
     catch (error) {

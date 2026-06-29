@@ -1,6 +1,6 @@
 import { Request, Response, NextFunction } from 'express';
 /**
- * Load writing + speaking questions for a test set (admin builder)
+ * Load writing + speaking + reading questions for a test set (admin builder)
  */
 export declare const getTestSetQuestions: (req: Request, res: Response, next: NextFunction) => Promise<Response<any, Record<string, any>> | undefined>;
 /**

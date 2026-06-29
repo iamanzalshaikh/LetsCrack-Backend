@@ -1,4 +1,4 @@
-import { cleanEnv, str, port, url, host, num } from 'envalid';
+import { cleanEnv, str, port, url, host, num, bool } from 'envalid';
 import dotenv from 'dotenv';
 
 dotenv.config();
@@ -25,7 +25,9 @@ export const env = cleanEnv(process.env, {
   // URLs
   FRONTEND_URL: url({ default: 'http://localhost:3000' }),
   CORS_ORIGIN: str({ default: 'http://localhost:3000' }),
-  // Gemini AI
-  GEMINI_API_KEY: str(),
+  /** Set true only when Gemini API grading should run (default: off). */
+  AI_GRADING_ENABLED: bool({ default: false }),
+  // Gemini AI (optional when AI_GRADING_ENABLED is false)
+  GEMINI_API_KEY: str({ default: '' }),
   GEMINI_MODEL: str({ default: 'gemini-flash-latest' }),
 });

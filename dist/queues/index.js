@@ -7,7 +7,9 @@ import WritingQuestion from '../models/WritingQuestion.js';
 import SpeakingQuestion from '../models/SpeakingQuestion.js';
 import TestResult from '../models/TestResult.js';
 import { gradeSpeakingTask, gradeWritingTask, } from '../utils/gemini.service.js';
+import { countGradedSpeaking, countGradedWriting } from '../utils/gradingProgress.js';
 import { emitToUser } from '../sockets/emitter.js';
+import { env } from '../config/env.js';
 const clampBand = (value) => {
     const numeric = Number(value);
     if (!Number.isFinite(numeric))
@@ -85,11 +87,11 @@ const emitGradingProgressAfterSessionUpdate = async (sessionId, testSetNumber, m
     const [totalWritingTasks, totalSpeakingTasks, readingTask, listeningTask] = await Promise.all([
         WritingQuestion.countDocuments({ testSetNumber }),
         SpeakingQuestion.countDocuments({ testSetNumber }),
-        QuestionBank.findOne({ module: 'reading', testSetNumber }).select('mcqs'),
-        QuestionBank.findOne({ module: 'listening', testSetNumber }).select('mcqs'),
+        QuestionBank.findOne({ module: 'reading', testSetNumber }).select('mcqs').lean(),
+        QuestionBank.findOne({ module: 'listening', testSetNumber }).select('mcqs').lean(),
     ]);
-    const gradedWriting = session.writingResponses.filter((r) => (r.aiBand || 0) > 0).length;
-    const gradedSpeaking = session.speakingRecordings.filter((r) => (r.aiBand || 0) > 0).length;
+    const gradedWriting = countGradedWriting(session.writingResponses);
+    const gradedSpeaking = countGradedSpeaking(session.speakingRecordings);
     const selectedModules = session.selectedModules || ['writing', 'speaking'];
     const readingCount = readingTask?.mcqs?.length || 0;
     const listeningCount = listeningTask?.mcqs?.length || 0;
@@ -228,135 +230,139 @@ export const cancelGradingJobsForSession = async (sessionId) => {
     }
     return removed;
 };
-export const gradingWorker = new Worker('grading', async (job) => {
-    const { sessionId, testSetNumber, taskNumber, subTask, module = 'speaking' } = job.data;
-    logger.info(`Processing AI grading for Session ${sessionId}, ${module} Task ${taskNumber} ${subTask || ''}`);
-    try {
-        // 1. Find the session
-        let session = await TestSession.findById(sessionId);
-        if (!session)
-            throw new Error('Session not found');
-        if (session.endedEarly) {
-            logger.info(`Skipping grading job ${job.id}: session ${sessionId} was ended early by student`);
-            return;
-        }
-        // 2. Get the task prompt
-        if (module === 'speaking') {
-            const tn = Number(taskNumber);
-            const st = tn === 5 ? (subTask === 'B' ? 'B' : 'A') : null;
-            const question = await SpeakingQuestion.findOne({ testSetNumber, taskNumber: tn, subTask: st });
-            if (!question)
-                throw new Error('Question not found');
-            const recording = session.speakingRecordings.find((r) => {
-                const m = r;
-                if (m.taskNumber !== tn)
-                    return false;
-                if (tn === 5) {
-                    const a = m.subTask === 'B' ? 'B' : 'A';
-                    const b = st === 'B' ? 'B' : 'A';
-                    return a === b;
-                }
-                return !m.subTask;
-            });
-            if (!recording || !recording.audioUrl)
-                throw new Error('Audio URL not found for task');
-            const result = await gradeSpeakingTask(recording.audioUrl, question.prompt || '');
-            console.log(`\n=========================================\n[SPEAKING TRANSCRIPT] Task ${tn} (Session ${sessionId}):\n"${result.transcript}"\n=========================================\n`);
-            const normalizedAnalysis = {
-                coherence: clampBand(result?.analysis?.coherence),
-                vocabulary: clampBand(result?.analysis?.vocabulary),
-                listenability: clampBand(result?.analysis?.listenability),
-                taskFulfillment: clampBand(result?.analysis?.taskFulfillment),
-                feedback: String(result?.analysis?.feedback || ''),
-                modelAnswer: String(result?.analysis?.modelAnswer || ''),
-            };
-            const normalizedBand = clampBand(result?.aiBand) ||
-                averageBand([
-                    normalizedAnalysis.coherence,
-                    normalizedAnalysis.vocabulary,
-                    normalizedAnalysis.listenability,
-                    normalizedAnalysis.taskFulfillment,
-                ]);
-            const speakingQuery = {
-                _id: sessionId,
-                'speakingRecordings.taskNumber': tn,
-            };
-            if (tn === 5) {
-                speakingQuery['speakingRecordings.subTask'] = st;
+export const gradingWorker = env.AI_GRADING_ENABLED
+    ? new Worker('grading', async (job) => {
+        const { sessionId, testSetNumber, taskNumber, subTask, module = 'speaking' } = job.data;
+        logger.info(`Processing AI grading for Session ${sessionId}, ${module} Task ${taskNumber} ${subTask || ''}`);
+        try {
+            // 1. Find the session
+            let session = await TestSession.findById(sessionId);
+            if (!session)
+                throw new Error('Session not found');
+            if (session.endedEarly) {
+                logger.info(`Skipping grading job ${job.id}: session ${sessionId} was ended early by student`);
+                return;
             }
-            const speakingUpdateRes = await TestSession.updateOne(speakingQuery, {
-                $set: {
-                    'speakingRecordings.$.transcript': result.transcript,
-                    'speakingRecordings.$.aiBand': normalizedBand,
-                    'speakingRecordings.$.aiAnalysis': normalizedAnalysis,
-                },
-            });
-            if (!speakingUpdateRes.matchedCount) {
-                throw new Error('Speaking recording row not found for atomic grading update');
-            }
-        }
-        else if (module === 'writing') {
-            const tn = Number(taskNumber);
-            const question = await WritingQuestion.findOne({ testSetNumber, taskNumber });
-            if (!question)
-                throw new Error('Question not found');
-            const response = session.writingResponses.find(r => r.taskNumber === taskNumber);
-            if (!response || !response.responseText)
-                throw new Error('Response text not found for writing task');
-            const taskPromptForAi = buildWritingEvaluationPrompt(question, tn);
-            // Unified call handles scores, detailed narrative, model answer, etc. in one pass
-            const result = await gradeWritingTask(response.responseText, taskPromptForAi, tn);
-            const writingUpdateRes = await TestSession.updateOne({ _id: sessionId, 'writingResponses.taskNumber': taskNumber }, {
-                $set: {
-                    'writingResponses.$.aiBand': result.overallBand,
-                    'writingResponses.$.aiAnalysis': {
-                        coherence: result.coherenceMeaning,
-                        vocabulary: result.vocabulary,
-                        readability: result.readability,
-                        taskFulfillment: result.taskFulfillment,
-                        feedback: result.analysis.feedback,
-                        strengths: result.strengths,
-                        improvements: result.improvements,
-                        quickTips: result.quickTips,
-                        lineFeedback: result.lineFeedback,
-                        modelAnswer: result.modelAnswer,
-                        overallRemark: result.overallRemark,
-                        detailedFeedback: result.detailedFeedback,
-                        categoryBullets: result.categoryBullets,
-                    },
-                },
-            });
-            if (!writingUpdateRes.matchedCount) {
-                throw new Error('Writing response row not found for atomic grading update');
-            }
-        }
-        await emitGradingProgressAfterSessionUpdate(sessionId, testSetNumber, module, Number(taskNumber));
-        logger.info(`AI Grading successful for Session ${sessionId}, ${module} Task ${taskNumber}`);
-    }
-    catch (error) {
-        const errMsg = error instanceof Error ? error.message : String(error);
-        if (errMsg.includes('DAILY_QUOTA_EXHAUSTED')) {
-            logger.error(`Grading Job ${job.id}: daily quota exhausted — not retrying`);
-            throw new UnrecoverableError(errMsg);
-        }
-        logger.error(`Grading Job ${job.id} Error:`, error);
-        if (job.data?.sessionId) {
-            const session = await TestSession.findById(job.data.sessionId).select('studentId');
-            if (session?.studentId) {
-                emitToUser(session.studentId.toString(), 'grading:failed', {
-                    sessionId: job.data.sessionId,
-                    module: job.data.module || 'speaking',
-                    taskNumber: job.data.taskNumber,
-                    message: 'AI grading failed for this task.',
+            // 2. Get the task prompt
+            if (module === 'speaking') {
+                const tn = Number(taskNumber);
+                const st = tn === 5 ? (subTask === 'B' ? 'B' : 'A') : null;
+                const question = await SpeakingQuestion.findOne({ testSetNumber, taskNumber: tn, subTask: st }).lean();
+                if (!question)
+                    throw new Error('Question not found');
+                const recording = session.speakingRecordings.find((r) => {
+                    const m = r;
+                    if (m.taskNumber !== tn)
+                        return false;
+                    if (tn === 5) {
+                        const a = m.subTask === 'B' ? 'B' : 'A';
+                        const b = st === 'B' ? 'B' : 'A';
+                        return a === b;
+                    }
+                    return !m.subTask;
                 });
+                if (!recording || !recording.audioUrl)
+                    throw new Error('Audio URL not found for task');
+                const result = await gradeSpeakingTask(recording.audioUrl, question.prompt || '');
+                console.log(`\n=========================================\n[SPEAKING TRANSCRIPT] Task ${tn} (Session ${sessionId}):\n"${result.transcript}"\n=========================================\n`);
+                const normalizedAnalysis = {
+                    coherence: clampBand(result?.analysis?.coherence),
+                    vocabulary: clampBand(result?.analysis?.vocabulary),
+                    listenability: clampBand(result?.analysis?.listenability),
+                    taskFulfillment: clampBand(result?.analysis?.taskFulfillment),
+                    feedback: String(result?.analysis?.feedback || ''),
+                    modelAnswer: String(result?.analysis?.modelAnswer || ''),
+                };
+                const normalizedBand = clampBand(result?.aiBand) ||
+                    averageBand([
+                        normalizedAnalysis.coherence,
+                        normalizedAnalysis.vocabulary,
+                        normalizedAnalysis.listenability,
+                        normalizedAnalysis.taskFulfillment,
+                    ]);
+                const speakingQuery = {
+                    _id: sessionId,
+                    'speakingRecordings.taskNumber': tn,
+                };
+                if (tn === 5) {
+                    speakingQuery['speakingRecordings.subTask'] = st;
+                }
+                const speakingUpdateRes = await TestSession.updateOne(speakingQuery, {
+                    $set: {
+                        'speakingRecordings.$.transcript': result.transcript,
+                        'speakingRecordings.$.aiBand': normalizedBand,
+                        'speakingRecordings.$.aiAnalysis': normalizedAnalysis,
+                    },
+                });
+                if (!speakingUpdateRes.matchedCount) {
+                    throw new Error('Speaking recording row not found for atomic grading update');
+                }
             }
+            else if (module === 'writing') {
+                const tn = Number(taskNumber);
+                const question = await WritingQuestion.findOne({ testSetNumber, taskNumber }).lean();
+                if (!question)
+                    throw new Error('Question not found');
+                const response = session.writingResponses.find(r => r.taskNumber === taskNumber);
+                if (!response || !response.responseText)
+                    throw new Error('Response text not found for writing task');
+                const taskPromptForAi = buildWritingEvaluationPrompt(question, tn);
+                // Unified call handles scores, detailed narrative, model answer, etc. in one pass
+                const result = await gradeWritingTask(response.responseText, taskPromptForAi, tn);
+                const writingUpdateRes = await TestSession.updateOne({ _id: sessionId, 'writingResponses.taskNumber': taskNumber }, {
+                    $set: {
+                        'writingResponses.$.aiBand': result.overallBand,
+                        'writingResponses.$.aiAnalysis': {
+                            coherence: result.coherenceMeaning,
+                            vocabulary: result.vocabulary,
+                            readability: result.readability,
+                            taskFulfillment: result.taskFulfillment,
+                            feedback: result.analysis.feedback,
+                            strengths: result.strengths,
+                            improvements: result.improvements,
+                            quickTips: result.quickTips,
+                            lineFeedback: result.lineFeedback,
+                            modelAnswer: result.modelAnswer,
+                            overallRemark: result.overallRemark,
+                            detailedFeedback: result.detailedFeedback,
+                            categoryBullets: result.categoryBullets,
+                        },
+                    },
+                });
+                if (!writingUpdateRes.matchedCount) {
+                    throw new Error('Writing response row not found for atomic grading update');
+                }
+            }
+            await emitGradingProgressAfterSessionUpdate(sessionId, testSetNumber, module, Number(taskNumber));
+            logger.info(`AI Grading successful for Session ${sessionId}, ${module} Task ${taskNumber}`);
         }
-        throw error;
-    }
-}, { connection: redis, concurrency: 1 });
+        catch (error) {
+            const errMsg = error instanceof Error ? error.message : String(error);
+            if (errMsg.includes('DAILY_QUOTA_EXHAUSTED')) {
+                logger.error(`Grading Job ${job.id}: daily quota exhausted — not retrying`);
+                throw new UnrecoverableError(errMsg);
+            }
+            logger.error(`Grading Job ${job.id} Error:`, error);
+            if (job.data?.sessionId) {
+                const session = await TestSession.findById(job.data.sessionId).select('studentId');
+                if (session?.studentId) {
+                    emitToUser(session.studentId.toString(), 'grading:failed', {
+                        sessionId: job.data.sessionId,
+                        module: job.data.module || 'speaking',
+                        taskNumber: job.data.taskNumber,
+                        message: 'AI grading failed for this task.',
+                    });
+                }
+            }
+            throw error;
+        }
+    }, { connection: redis, concurrency: 1 })
+    : null;
 // Event Listeners
 notificationWorker.on('completed', (job) => logger.info(`Notification job ${job.id} completed`));
-gradingWorker.on('completed', (job) => logger.info(`Grading job ${job.id} completed`));
-gradingWorker.on('failed', (job, err) => logger.error(`Grading job ${job?.id} failed:`, err));
+if (gradingWorker) {
+    gradingWorker.on('completed', (job) => logger.info(`Grading job ${job.id} completed`));
+    gradingWorker.on('failed', (job, err) => logger.error(`Grading job ${job?.id} failed:`, err));
+}
 export default { gradingQueue, notificationQueue };
 //# sourceMappingURL=index.js.map

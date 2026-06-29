@@ -108,6 +108,10 @@ const TestSessionSchema = new mongoose.Schema({
   reviewStatus: { type: Map, of: Boolean, default: {} }
 });
 
+TestSessionSchema.index({ studentId: 1, status: 1 });
+TestSessionSchema.index({ studentId: 1, testSetNumber: 1, mode: 1 });
+TestSessionSchema.index({ purgeAt: 1, purgedAt: 1 });
+
 const TestSession = mongoose.model('TestSession', TestSessionSchema);
 
 export default TestSession;

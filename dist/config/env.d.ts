@@ -3,6 +3,7 @@ export declare const env: Readonly<{
     PORT: number;
     DATABASE_URL: string;
     MONGO_URL: string;
+    REDIS_URL: string;
     REDIS_HOST: string;
     REDIS_PORT: number;
     JWT_ACCESS_SECRET: string;
@@ -15,6 +16,7 @@ export declare const env: Readonly<{
     CLOUDINARY_API_SECRET: string;
     FRONTEND_URL: string;
     CORS_ORIGIN: string;
+    AI_GRADING_ENABLED: boolean;
     GEMINI_API_KEY: string;
     GEMINI_MODEL: string;
 } & import("envalid").CleanedEnvAccessors>;

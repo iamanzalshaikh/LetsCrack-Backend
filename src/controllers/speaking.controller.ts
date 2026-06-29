@@ -6,10 +6,12 @@ import QuestionBank from "../models/QuestionBank.js"
 import TestSet from "../models/TestSet.js"
 import { uploadStudentSpeakingAudio } from "../utils/cloudinaryMedia.js"
 import { gradingQueue } from "../queues/index.js"
+import { isAiGradingEnabled } from "../utils/gradingProgress.js"
 import logger from "../utils/logger.js"
 import { emitToUser } from "../sockets/emitter.js"
 import { isActionAllowed } from "../utils/modeRules.js"
 import { computeEffectiveMediaPolicy } from "../utils/mediaPolicy.js"
+import { getOrSetTestSetCache } from "../utils/cache.js"
 
 function positionInSpeakingFlow(taskNumber: number, sub: "A" | "B" | null): number {
   if (taskNumber < 5) return taskNumber
@@ -111,24 +113,26 @@ export const saveRecording = async (req: Request, res: Response, next: NextFunct
     let totalExpected = 0;
     let submittedCount = 0;
 
+    const cache = await getOrSetTestSetCache(Number(testSetNumber));
+
     if (selectedModules.includes("writing")) {
-      const totalWritingTasks = await WritingQuestion.countDocuments({ testSetNumber: Number(testSetNumber) });
+      const totalWritingTasks = cache.writing.length;
       totalExpected += totalWritingTasks;
       submittedCount += session.writingResponses.filter((r) => Boolean(r.submittedAt)).length;
     }
     if (selectedModules.includes("speaking")) {
-      const totalSpeakingTasks = await SpeakingQuestion.countDocuments({ testSetNumber: Number(testSetNumber) });
+      const totalSpeakingTasks = cache.speaking.length;
       totalExpected += totalSpeakingTasks;
       submittedCount += session.speakingRecordings.length;
     }
     if (selectedModules.includes("reading")) {
-      const readingTask = await QuestionBank.findOne({ module: "reading", testSetNumber: Number(testSetNumber) });
+      const readingTask = cache.reading[0];
       const readingCount = readingTask?.mcqs?.length || 0;
       totalExpected += readingCount;
       submittedCount += session.mcqResponses.filter((r: any) => r.module === "reading").length;
     }
     if (selectedModules.includes("listening")) {
-      const listeningTask = await QuestionBank.findOne({ module: "listening", testSetNumber: Number(testSetNumber) });
+      const listeningTask = cache.listening[0];
       const listeningCount = listeningTask?.mcqs?.length || 0;
       totalExpected += listeningCount;
       submittedCount += session.mcqResponses.filter((r: any) => r.module === "listening").length;
@@ -150,26 +154,40 @@ export const saveRecording = async (req: Request, res: Response, next: NextFunct
       })
     }
 
-    await gradingQueue.add(`grade-session-${session._id}-task-${tn}-${normalizedSub || "x"}`, {
-      sessionId: session._id,
-      testSetNumber: Number(testSetNumber),
-      taskNumber: tn,
-      subTask: normalizedSub,
-      module: "speaking",
-    })
+    if (isAiGradingEnabled()) {
+      await gradingQueue.add(`grade-session-${session._id}-task-${tn}-${normalizedSub || "x"}`, {
+        sessionId: session._id,
+        testSetNumber: Number(testSetNumber),
+        taskNumber: tn,
+        subTask: normalizedSub,
+        module: "speaking",
+      })
 
-    emitToUser(studentId.toString(), "grading:queued", {
-      sessionId: session._id,
-      module: "speaking",
-      taskNumber: tn,
-      subTask: normalizedSub,
-    })
+      emitToUser(studentId.toString(), "grading:queued", {
+        sessionId: session._id,
+        module: "speaking",
+        taskNumber: tn,
+        subTask: normalizedSub,
+      })
+
+      return res.json({
+        recordingId: session._id,
+        audioUrl,
+        uploadedAt: recordingData.submittedAt,
+        aiGradingStatus: "queued",
+      })
+    }
+
+    if (totalExpected > 0 && submittedCount >= totalExpected) {
+      session.status = "graded"
+      await session.save()
+    }
 
     res.json({
       recordingId: session._id,
       audioUrl,
       uploadedAt: recordingData.submittedAt,
-      aiGradingStatus: "queued",
+      aiGradingStatus: "skipped",
     })
   } catch (error) {
     next(error)
@@ -203,15 +221,10 @@ export const getTask = async (req: Request, res: Response, next: NextFunction) =
     const st: "A" | "B" | null =
       tn === 5 ? (String(qSub).toUpperCase() === "B" ? "B" : "A") : null
 
-    const [task, totalSpeakingTasks, testSet] = await Promise.all([
-      SpeakingQuestion.findOne({
-        testSetNumber: Number(testSetNumber),
-        taskNumber: tn,
-        subTask: st,
-      }),
-      SpeakingQuestion.countDocuments({ testSetNumber: Number(testSetNumber) }),
-      TestSet.findOne({ testSetNumber: Number(testSetNumber) }).select('instructions').lean(),
-    ])
+    const cache = await getOrSetTestSetCache(Number(testSetNumber));
+    const task = cache.speaking.find((s: any) => s.taskNumber === tn && (st ? s.subTask === st : !s.subTask));
+    const totalSpeakingTasks = cache.speaking.length;
+    const testSet = cache.testSet ? { instructions: cache.testSet.instructions } : null;
 
     if (!task) return res.status(404).json({ error: "Task not found" })
 

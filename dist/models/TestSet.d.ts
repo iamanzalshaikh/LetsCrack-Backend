@@ -10,7 +10,6 @@ declare const TestSetSchema: mongoose.Schema<any, mongoose.Model<any, any, any, 
     modeSupport: ("practice" | "simulation")[];
     modules: ("listening" | "reading" | "writing" | "speaking")[];
     estimatedTimeMinutes: number;
-    publishedAt?: NativeDate | null | undefined;
     instructions?: {
         practice: string;
         simulation: string;
@@ -18,7 +17,13 @@ declare const TestSetSchema: mongoose.Schema<any, mongoose.Model<any, any, any, 
         writingInstructionVideoUrl: string;
         speakingInstructionText: string;
         speakingInstructionVideoUrl: string;
+        readingInstructionText: string;
+        readingInstructionVideoUrl: string;
+        listeningInstructionText: string;
+        listeningInstructionVideoUrl: string;
+        listeningTestSoundUrl: string;
     } | null | undefined;
+    publishedAt?: NativeDate | null | undefined;
 }, mongoose.Document<unknown, {}, mongoose.FlatRecord<{
     version: number;
     createdAt: NativeDate;
@@ -30,7 +35,6 @@ declare const TestSetSchema: mongoose.Schema<any, mongoose.Model<any, any, any, 
     modeSupport: ("practice" | "simulation")[];
     modules: ("listening" | "reading" | "writing" | "speaking")[];
     estimatedTimeMinutes: number;
-    publishedAt?: NativeDate | null | undefined;
     instructions?: {
         practice: string;
         simulation: string;
@@ -38,7 +42,13 @@ declare const TestSetSchema: mongoose.Schema<any, mongoose.Model<any, any, any, 
         writingInstructionVideoUrl: string;
         speakingInstructionText: string;
         speakingInstructionVideoUrl: string;
+        readingInstructionText: string;
+        readingInstructionVideoUrl: string;
+        listeningInstructionText: string;
+        listeningInstructionVideoUrl: string;
+        listeningTestSoundUrl: string;
     } | null | undefined;
+    publishedAt?: NativeDate | null | undefined;
 }>, {}, mongoose.DefaultSchemaOptions> & mongoose.FlatRecord<{
     version: number;
     createdAt: NativeDate;
@@ -50,7 +60,6 @@ declare const TestSetSchema: mongoose.Schema<any, mongoose.Model<any, any, any, 
     modeSupport: ("practice" | "simulation")[];
     modules: ("listening" | "reading" | "writing" | "speaking")[];
     estimatedTimeMinutes: number;
-    publishedAt?: NativeDate | null | undefined;
     instructions?: {
         practice: string;
         simulation: string;
@@ -58,7 +67,13 @@ declare const TestSetSchema: mongoose.Schema<any, mongoose.Model<any, any, any, 
         writingInstructionVideoUrl: string;
         speakingInstructionText: string;
         speakingInstructionVideoUrl: string;
+        readingInstructionText: string;
+        readingInstructionVideoUrl: string;
+        listeningInstructionText: string;
+        listeningInstructionVideoUrl: string;
+        listeningTestSoundUrl: string;
     } | null | undefined;
+    publishedAt?: NativeDate | null | undefined;
 }> & {
     _id: mongoose.Types.ObjectId;
 } & {
@@ -75,7 +90,6 @@ declare const TestSet: mongoose.Model<{
     modeSupport: ("practice" | "simulation")[];
     modules: ("listening" | "reading" | "writing" | "speaking")[];
     estimatedTimeMinutes: number;
-    publishedAt?: NativeDate | null | undefined;
     instructions?: {
         practice: string;
         simulation: string;
@@ -83,7 +97,13 @@ declare const TestSet: mongoose.Model<{
         writingInstructionVideoUrl: string;
         speakingInstructionText: string;
         speakingInstructionVideoUrl: string;
+        readingInstructionText: string;
+        readingInstructionVideoUrl: string;
+        listeningInstructionText: string;
+        listeningInstructionVideoUrl: string;
+        listeningTestSoundUrl: string;
     } | null | undefined;
+    publishedAt?: NativeDate | null | undefined;
 }, {}, {}, {}, mongoose.Document<unknown, {}, {
     version: number;
     createdAt: NativeDate;
@@ -95,7 +115,6 @@ declare const TestSet: mongoose.Model<{
     modeSupport: ("practice" | "simulation")[];
     modules: ("listening" | "reading" | "writing" | "speaking")[];
     estimatedTimeMinutes: number;
-    publishedAt?: NativeDate | null | undefined;
     instructions?: {
         practice: string;
         simulation: string;
@@ -103,7 +122,13 @@ declare const TestSet: mongoose.Model<{
         writingInstructionVideoUrl: string;
         speakingInstructionText: string;
         speakingInstructionVideoUrl: string;
+        readingInstructionText: string;
+        readingInstructionVideoUrl: string;
+        listeningInstructionText: string;
+        listeningInstructionVideoUrl: string;
+        listeningTestSoundUrl: string;
     } | null | undefined;
+    publishedAt?: NativeDate | null | undefined;
 }, {}, mongoose.DefaultSchemaOptions> & {
     version: number;
     createdAt: NativeDate;
@@ -115,7 +140,6 @@ declare const TestSet: mongoose.Model<{
     modeSupport: ("practice" | "simulation")[];
     modules: ("listening" | "reading" | "writing" | "speaking")[];
     estimatedTimeMinutes: number;
-    publishedAt?: NativeDate | null | undefined;
     instructions?: {
         practice: string;
         simulation: string;
@@ -123,7 +147,13 @@ declare const TestSet: mongoose.Model<{
         writingInstructionVideoUrl: string;
         speakingInstructionText: string;
         speakingInstructionVideoUrl: string;
+        readingInstructionText: string;
+        readingInstructionVideoUrl: string;
+        listeningInstructionText: string;
+        listeningInstructionVideoUrl: string;
+        listeningTestSoundUrl: string;
     } | null | undefined;
+    publishedAt?: NativeDate | null | undefined;
 } & {
     _id: mongoose.Types.ObjectId;
 } & {
@@ -139,7 +169,6 @@ declare const TestSet: mongoose.Model<{
     modeSupport: ("practice" | "simulation")[];
     modules: ("listening" | "reading" | "writing" | "speaking")[];
     estimatedTimeMinutes: number;
-    publishedAt?: NativeDate | null | undefined;
     instructions?: {
         practice: string;
         simulation: string;
@@ -147,7 +176,13 @@ declare const TestSet: mongoose.Model<{
         writingInstructionVideoUrl: string;
         speakingInstructionText: string;
         speakingInstructionVideoUrl: string;
+        readingInstructionText: string;
+        readingInstructionVideoUrl: string;
+        listeningInstructionText: string;
+        listeningInstructionVideoUrl: string;
+        listeningTestSoundUrl: string;
     } | null | undefined;
+    publishedAt?: NativeDate | null | undefined;
 }, mongoose.Document<unknown, {}, mongoose.FlatRecord<{
     version: number;
     createdAt: NativeDate;
@@ -159,7 +194,6 @@ declare const TestSet: mongoose.Model<{
     modeSupport: ("practice" | "simulation")[];
     modules: ("listening" | "reading" | "writing" | "speaking")[];
     estimatedTimeMinutes: number;
-    publishedAt?: NativeDate | null | undefined;
     instructions?: {
         practice: string;
         simulation: string;
@@ -167,7 +201,13 @@ declare const TestSet: mongoose.Model<{
         writingInstructionVideoUrl: string;
         speakingInstructionText: string;
         speakingInstructionVideoUrl: string;
+        readingInstructionText: string;
+        readingInstructionVideoUrl: string;
+        listeningInstructionText: string;
+        listeningInstructionVideoUrl: string;
+        listeningTestSoundUrl: string;
     } | null | undefined;
+    publishedAt?: NativeDate | null | undefined;
 }>, {}, mongoose.DefaultSchemaOptions> & mongoose.FlatRecord<{
     version: number;
     createdAt: NativeDate;
@@ -179,7 +219,6 @@ declare const TestSet: mongoose.Model<{
     modeSupport: ("practice" | "simulation")[];
     modules: ("listening" | "reading" | "writing" | "speaking")[];
     estimatedTimeMinutes: number;
-    publishedAt?: NativeDate | null | undefined;
     instructions?: {
         practice: string;
         simulation: string;
@@ -187,7 +226,13 @@ declare const TestSet: mongoose.Model<{
         writingInstructionVideoUrl: string;
         speakingInstructionText: string;
         speakingInstructionVideoUrl: string;
+        readingInstructionText: string;
+        readingInstructionVideoUrl: string;
+        listeningInstructionText: string;
+        listeningInstructionVideoUrl: string;
+        listeningTestSoundUrl: string;
     } | null | undefined;
+    publishedAt?: NativeDate | null | undefined;
 }> & {
     _id: mongoose.Types.ObjectId;
 } & {

@@ -14,7 +14,7 @@ export const errorHandler = (err: any, req: Request, res: Response, next: NextFu
     stack: err.stack,
     path: req.path,
     method: req.method,
-    body: JSON.stringify(req.body).substring(0, 500), // Log first 500 chars
+    body: req.body ? (JSON.stringify(req.body) || '').substring(0, 500) : '',
     user: (req as any).user?.id,
   });
 

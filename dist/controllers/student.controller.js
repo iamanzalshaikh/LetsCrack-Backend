@@ -1,4 +1,5 @@
 import mongoose from 'mongoose';
+import { countGradedSpeaking, countGradedWriting, isAiGradingEnabled } from '../utils/gradingProgress.js';
 import TestResult from '../models/TestResult.js';
 import TestSession from '../models/TestSession.js';
 import QuestionBank from '../models/QuestionBank.js';
@@ -9,6 +10,7 @@ import { generateCertificate, generateAiEvaluationReport } from '../utils/pdf.js
 import logger from '../utils/logger.js';
 import { computeEffectiveMediaPolicy } from '../utils/mediaPolicy.js';
 import { cancelGradingJobsForSession } from '../queues/index.js';
+import { getOrSetTestSetCache, getOrSetPublishedTestsCache } from '../utils/cache.js';
 /** End open attempts and cancel queued Gemini jobs (does not call Gemini). */
 const closeInProgressSessionsForStudent = async (studentId, options) => {
     const query = { studentId, status: 'in_progress' };
@@ -54,22 +56,22 @@ export const getResults = async (req, res, next) => {
                 _id: new mongoose.Types.ObjectId(sessionIdQs),
                 studentId,
                 testSetNumber: tn,
-            }).select(SESSION_PROJECT);
+            }).select(SESSION_PROJECT).lean();
             if (byAttempt) {
                 session = byAttempt;
-                result = await TestResult.findOne({ studentId, testSessionId: byAttempt._id });
+                result = await TestResult.findOne({ studentId, testSessionId: byAttempt._id }).lean();
             }
         }
         /** No session query (or unknown id): fallback to legacy “latest scored result row” for this set. */
         if (!session) {
-            const fallbackResult = (await TestResult.findOne({ studentId, testSetNumber: tn }).sort({ createdAt: -1 })) || null;
+            const fallbackResult = (await TestResult.findOne({ studentId, testSetNumber: tn }).sort({ createdAt: -1 }).lean()) || null;
             if (!fallbackResult) {
                 return res.status(404).json({ error: 'Results not yet available for this test set' });
             }
             if (!fallbackResult.testSessionId) {
                 return res.status(404).json({ error: 'Results not yet available for this test set' });
             }
-            const loaded = await TestSession.findById(fallbackResult.testSessionId).select(SESSION_PROJECT);
+            const loaded = await TestSession.findById(fallbackResult.testSessionId).select(SESSION_PROJECT).lean();
             if (!loaded) {
                 return res.status(404).json({ error: 'Results not yet available for this test set' });
             }
@@ -79,7 +81,7 @@ export const getResults = async (req, res, next) => {
         /** Explicit session match but grading has not upserted a TestResult row yet. */
         if (session && !result) {
             result =
-                (await TestResult.findOne({ studentId, testSessionId: session._id })) || null;
+                (await TestResult.findOne({ studentId, testSessionId: session._id }).lean()) || null;
         }
         const writingFeedback = session?.writingResponses
             ?.map((r) => String(r?.aiAnalysis?.feedback || '').trim())
@@ -166,15 +168,23 @@ export const getResults = async (req, res, next) => {
             feedback: String(r.aiAnalysis?.feedback || ''),
             modelAnswer: r.aiAnalysis?.modelAnswer || '',
         })) || [];
-        const speakingQuestions = await SpeakingQuestion.find({ testSetNumber: tn })
-            .select('taskNumber subTask prompt prepTime speakingTime sampleTranscript imageUrl imageUrlA imageUrlB imageUrlC optionALabel optionBLabel optionCLabel')
-            .sort({ taskNumber: 1, subTask: 1 })
-            .lean();
-        const writingRows = await WritingQuestion.find({ testSetNumber: Number(testSetNumber) })
-            .select('taskNumber')
-            .sort({ taskNumber: 1 })
-            .lean();
-        const expectedWritingTaskNumbers = writingRows
+        const cache = await getOrSetTestSetCache(tn);
+        const speakingQuestions = cache.speaking.map(s => ({
+            taskNumber: s.taskNumber,
+            subTask: s.subTask || null,
+            prompt: s.prompt,
+            prepTime: s.prepTime,
+            speakingTime: s.speakingTime,
+            sampleTranscript: s.sampleTranscript,
+            imageUrl: s.imageUrl,
+            imageUrlA: s.imageUrlA,
+            imageUrlB: s.imageUrlB,
+            imageUrlC: s.imageUrlC,
+            optionALabel: s.optionALabel,
+            optionBLabel: s.optionBLabel,
+            optionCLabel: s.optionCLabel,
+        }));
+        const expectedWritingTaskNumbers = cache.writing
             .map((w) => Number(w.taskNumber))
             .filter((n) => Number.isFinite(n) && n > 0);
         const sessionAny = session;
@@ -208,7 +218,7 @@ export const getProgress = async (req, res, next) => {
     try {
         const studentId = req.user.id;
         // Fetch all TestResults (graded)
-        const results = await TestResult.find({ studentId }).sort({ createdAt: -1 });
+        const results = await TestResult.find({ studentId }).sort({ createdAt: -1 }).lean();
         const tenMinutesAgo = new Date(Date.now() - 10 * 60 * 1000);
         // Fetch all TestSessions (submitted or graded) to find those that don't have a result row yet
         // Ignore sessions older than 10 minutes that don't have a result row yet
@@ -219,7 +229,7 @@ export const getProgress = async (req, res, next) => {
                 { completedAt: { $gte: tenMinutesAgo } },
                 { startedAt: { $gte: tenMinutesAgo } }
             ]
-        }).sort({ completedAt: -1, startedAt: -1 });
+        }).sort({ completedAt: -1, startedAt: -1 }).lean();
         const resultSessionIds = new Set(results.map(r => r.testSessionId?.toString()).filter(Boolean));
         const formattedAttempts = [];
         // Add Graded Results
@@ -263,17 +273,16 @@ export const getResultStatus = async (req, res, next) => {
         if (!mongoose.Types.ObjectId.isValid(sid)) {
             return res.status(404).json({ error: 'Session not found' });
         }
-        const session = await TestSession.findOne({ _id: sid, studentId });
+        const session = await TestSession.findOne({ _id: sid, studentId }).lean();
         if (!session) {
             return res.status(404).json({ error: 'Session not found' });
         }
         const selectedModules = session.selectedModules || ['writing', 'speaking'];
-        const [totalWritingTasks, totalSpeakingTasks, readingTask, listeningTask] = await Promise.all([
-            WritingQuestion.countDocuments({ testSetNumber: session.testSetNumber }),
-            SpeakingQuestion.countDocuments({ testSetNumber: session.testSetNumber }),
-            QuestionBank.findOne({ module: 'reading', testSetNumber: session.testSetNumber }).select('mcqs'),
-            QuestionBank.findOne({ module: 'listening', testSetNumber: session.testSetNumber }).select('mcqs'),
-        ]);
+        const cache = await getOrSetTestSetCache(session.testSetNumber);
+        const totalWritingTasks = cache.writing.length;
+        const totalSpeakingTasks = cache.speaking.length;
+        const readingTask = cache.reading[0];
+        const listeningTask = cache.listening[0];
         const totalReadingTasks = readingTask?.mcqs?.length || 0;
         const totalListeningTasks = listeningTask?.mcqs?.length || 0;
         const submittedWriting = selectedModules.includes('writing')
@@ -286,8 +295,8 @@ export const getResultStatus = async (req, res, next) => {
         const submittedListening = selectedModules.includes('listening')
             ? session.mcqResponses.filter((r) => r.module === 'listening').length
             : 0;
-        const gradedWriting = session.writingResponses.filter((r) => (r.aiBand || 0) > 0).length;
-        const gradedSpeaking = session.speakingRecordings.filter((r) => (r.aiBand || 0) > 0).length;
+        const gradedWriting = countGradedWriting(session.writingResponses);
+        const gradedSpeaking = countGradedSpeaking(session.speakingRecordings);
         const gradedReading = submittedReading > 0 ? totalReadingTasks : 0;
         const gradedListening = submittedListening > 0 ? totalListeningTasks : 0;
         const expectedWriting = selectedModules.includes('writing') ? totalWritingTasks : 0;
@@ -344,7 +353,7 @@ export const startTest = async (req, res, next) => {
         const testSet = await TestSet.findOne({
             testSetNumber: Number(testSetNumber),
             status: 'published',
-        });
+        }).lean();
         if (!testSet) {
             return res.status(404).json({ error: 'Published test set not found' });
         }
@@ -489,10 +498,8 @@ export const getTestInstructions = async (req, res, next) => {
     try {
         const { testSetNumber } = req.params;
         const { mode = 'practice' } = req.query;
-        const testSet = await TestSet.findOne({
-            testSetNumber: Number(testSetNumber),
-            status: 'published',
-        });
+        const cache = await getOrSetTestSetCache(Number(testSetNumber));
+        const testSet = cache.testSet && cache.testSet.status === 'published' ? cache.testSet : null;
         if (!testSet)
             return res.status(404).json({ error: 'Published test set not found' });
         const instructions = mode === 'simulation'
@@ -666,6 +673,9 @@ export const getCertificate = async (req, res, next) => {
  */
 export const getAiEvaluationReport = async (req, res, next) => {
     try {
+        if (!isAiGradingEnabled()) {
+            return res.status(410).json({ error: 'AI evaluation reports are disabled on this server.' });
+        }
         const { testSetNumber } = req.params;
         const student = req.user;
         const studentId = student.id;
@@ -678,17 +688,17 @@ export const getAiEvaluationReport = async (req, res, next) => {
                 _id: new mongoose.Types.ObjectId(sessionIdQs),
                 studentId,
                 testSetNumber: tn,
-            }).select('writingResponses');
+            }).select('writingResponses').lean();
             if (session) {
-                result = await TestResult.findOne({ studentId, testSessionId: session._id });
+                result = await TestResult.findOne({ studentId, testSessionId: session._id }).lean();
             }
         }
         if (!session) {
-            result = await TestResult.findOne({ studentId, testSetNumber: tn }).sort({ createdAt: -1 });
+            result = await TestResult.findOne({ studentId, testSetNumber: tn }).sort({ createdAt: -1 }).lean();
             if (!result?.testSessionId) {
                 return res.status(404).json({ error: 'Result not ready for PDF report yet' });
             }
-            session = await TestSession.findById(result.testSessionId).select('writingResponses');
+            session = await TestSession.findById(result.testSessionId).select('writingResponses').lean();
         }
         if (!session)
             return res.status(404).json({ error: 'Session not found for AI report' });
@@ -740,16 +750,18 @@ export const getAiEvaluationReport = async (req, res, next) => {
  */
 export const getAvailableTests = async (req, res, next) => {
     try {
-        const publishedSets = await TestSet.find({ status: 'published' }).sort({ testSetNumber: 1 });
-        const enrichedSets = publishedSets.map((set) => ({
-            testSetNumber: set.testSetNumber,
-            title: set.title,
-            description: set.description,
-            moduleCount: set.modules.length,
-            supportedModes: set.modeSupport,
-            estimatedTime: `${set.estimatedTimeMinutes} minutes`,
-            modules: set.modules,
-        }));
+        const enrichedSets = await getOrSetPublishedTestsCache(async () => {
+            const publishedSets = await TestSet.find({ status: 'published' }).sort({ testSetNumber: 1 }).lean();
+            return publishedSets.map((set) => ({
+                testSetNumber: set.testSetNumber,
+                title: set.title,
+                description: set.description,
+                moduleCount: set.modules.length,
+                supportedModes: set.modeSupport,
+                estimatedTime: `${set.estimatedTimeMinutes} minutes`,
+                modules: set.modules,
+            }));
+        });
         res.json({ testSets: enrichedSets });
     }
     catch (error) {

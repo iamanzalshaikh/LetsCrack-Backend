@@ -39,6 +39,8 @@ const TestResultSchema = new mongoose.Schema({
     certificateUrl: String,
     createdAt: { type: Date, default: Date.now }
 });
+TestResultSchema.index({ testSessionId: 1 });
+TestResultSchema.index({ studentId: 1, createdAt: -1 });
 const TestResult = mongoose.model('TestResult', TestResultSchema);
 export default TestResult;
 export { TestResultSchema };

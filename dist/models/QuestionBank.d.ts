@@ -12,15 +12,31 @@ declare const QuestionBankSchema: mongoose.Schema<any, mongoose.Model<any, any, 
         options: string[];
         questionText?: string | null | undefined;
         correctOption?: number | null | undefined;
+        questionAudioUrl?: string | null | undefined;
+        sectionAudioUrl?: string | null | undefined;
+        sectionImage?: string | null | undefined;
+        sectionIntroText?: string | null | undefined;
+        sectionScript?: string | null | undefined;
     }, mongoose.Types.Subdocument<mongoose.mongo.BSON.ObjectId, any, {
         options: string[];
         questionText?: string | null | undefined;
         correctOption?: number | null | undefined;
+        questionAudioUrl?: string | null | undefined;
+        sectionAudioUrl?: string | null | undefined;
+        sectionImage?: string | null | undefined;
+        sectionIntroText?: string | null | undefined;
+        sectionScript?: string | null | undefined;
     }> & {
         options: string[];
         questionText?: string | null | undefined;
         correctOption?: number | null | undefined;
+        questionAudioUrl?: string | null | undefined;
+        sectionAudioUrl?: string | null | undefined;
+        sectionImage?: string | null | undefined;
+        sectionIntroText?: string | null | undefined;
+        sectionScript?: string | null | undefined;
     }>;
+    layoutType: "split" | "single";
     taskNumber?: number | null | undefined;
     audioUrl?: string | null | undefined;
     wordCountTarget?: string | null | undefined;
@@ -40,6 +56,149 @@ declare const QuestionBankSchema: mongoose.Schema<any, mongoose.Model<any, any, 
     prepTime?: number | null | undefined;
     speakingTime?: number | null | undefined;
     passageText?: string | null | undefined;
+    title?: string | null | undefined;
+    instructions?: string | null | undefined;
+    instructionsPage2?: string | null | undefined;
+    partInstructionsText?: string | null | undefined;
+    timerSeconds?: number | null | undefined;
+    questionPoolId?: string | null | undefined;
+    leftPanel?: {
+        type: "none" | "audio" | "image" | "markdown";
+        contentBlocks: string[];
+        mediaUrl?: string | null | undefined;
+    } | null | undefined;
+    rightPanel?: {
+        sections: mongoose.Types.DocumentArray<{
+            questions: mongoose.Types.DocumentArray<{
+                options: string[];
+                id?: string | null | undefined;
+                type?: "single_select" | "inline_select" | "multi_select" | "text_input" | null | undefined;
+                label?: string | null | undefined;
+                correctAnswer?: any;
+                order?: number | null | undefined;
+            }, mongoose.Types.Subdocument<mongoose.mongo.BSON.ObjectId, any, {
+                options: string[];
+                id?: string | null | undefined;
+                type?: "single_select" | "inline_select" | "multi_select" | "text_input" | null | undefined;
+                label?: string | null | undefined;
+                correctAnswer?: any;
+                order?: number | null | undefined;
+            }> & {
+                options: string[];
+                id?: string | null | undefined;
+                type?: "single_select" | "inline_select" | "multi_select" | "text_input" | null | undefined;
+                label?: string | null | undefined;
+                correctAnswer?: any;
+                order?: number | null | undefined;
+            }>;
+            matchingQuestions: mongoose.Types.DocumentArray<{
+                id?: string | null | undefined;
+                order?: number | null | undefined;
+                statement?: string | null | undefined;
+                correctParagraph?: string | null | undefined;
+            }, mongoose.Types.Subdocument<mongoose.mongo.BSON.ObjectId, any, {
+                id?: string | null | undefined;
+                order?: number | null | undefined;
+                statement?: string | null | undefined;
+                correctParagraph?: string | null | undefined;
+            }> & {
+                id?: string | null | undefined;
+                order?: number | null | undefined;
+                statement?: string | null | undefined;
+                correctParagraph?: string | null | undefined;
+            }>;
+            type?: "standalone_dropdown" | "inline_dropdown" | "paragraph_match" | "mcq" | null | undefined;
+            template?: string | null | undefined;
+        }, mongoose.Types.Subdocument<mongoose.mongo.BSON.ObjectId, any, {
+            questions: mongoose.Types.DocumentArray<{
+                options: string[];
+                id?: string | null | undefined;
+                type?: "single_select" | "inline_select" | "multi_select" | "text_input" | null | undefined;
+                label?: string | null | undefined;
+                correctAnswer?: any;
+                order?: number | null | undefined;
+            }, mongoose.Types.Subdocument<mongoose.mongo.BSON.ObjectId, any, {
+                options: string[];
+                id?: string | null | undefined;
+                type?: "single_select" | "inline_select" | "multi_select" | "text_input" | null | undefined;
+                label?: string | null | undefined;
+                correctAnswer?: any;
+                order?: number | null | undefined;
+            }> & {
+                options: string[];
+                id?: string | null | undefined;
+                type?: "single_select" | "inline_select" | "multi_select" | "text_input" | null | undefined;
+                label?: string | null | undefined;
+                correctAnswer?: any;
+                order?: number | null | undefined;
+            }>;
+            matchingQuestions: mongoose.Types.DocumentArray<{
+                id?: string | null | undefined;
+                order?: number | null | undefined;
+                statement?: string | null | undefined;
+                correctParagraph?: string | null | undefined;
+            }, mongoose.Types.Subdocument<mongoose.mongo.BSON.ObjectId, any, {
+                id?: string | null | undefined;
+                order?: number | null | undefined;
+                statement?: string | null | undefined;
+                correctParagraph?: string | null | undefined;
+            }> & {
+                id?: string | null | undefined;
+                order?: number | null | undefined;
+                statement?: string | null | undefined;
+                correctParagraph?: string | null | undefined;
+            }>;
+            type?: "standalone_dropdown" | "inline_dropdown" | "paragraph_match" | "mcq" | null | undefined;
+            template?: string | null | undefined;
+        }> & {
+            questions: mongoose.Types.DocumentArray<{
+                options: string[];
+                id?: string | null | undefined;
+                type?: "single_select" | "inline_select" | "multi_select" | "text_input" | null | undefined;
+                label?: string | null | undefined;
+                correctAnswer?: any;
+                order?: number | null | undefined;
+            }, mongoose.Types.Subdocument<mongoose.mongo.BSON.ObjectId, any, {
+                options: string[];
+                id?: string | null | undefined;
+                type?: "single_select" | "inline_select" | "multi_select" | "text_input" | null | undefined;
+                label?: string | null | undefined;
+                correctAnswer?: any;
+                order?: number | null | undefined;
+            }> & {
+                options: string[];
+                id?: string | null | undefined;
+                type?: "single_select" | "inline_select" | "multi_select" | "text_input" | null | undefined;
+                label?: string | null | undefined;
+                correctAnswer?: any;
+                order?: number | null | undefined;
+            }>;
+            matchingQuestions: mongoose.Types.DocumentArray<{
+                id?: string | null | undefined;
+                order?: number | null | undefined;
+                statement?: string | null | undefined;
+                correctParagraph?: string | null | undefined;
+            }, mongoose.Types.Subdocument<mongoose.mongo.BSON.ObjectId, any, {
+                id?: string | null | undefined;
+                order?: number | null | undefined;
+                statement?: string | null | undefined;
+                correctParagraph?: string | null | undefined;
+            }> & {
+                id?: string | null | undefined;
+                order?: number | null | undefined;
+                statement?: string | null | undefined;
+                correctParagraph?: string | null | undefined;
+            }>;
+            type?: "standalone_dropdown" | "inline_dropdown" | "paragraph_match" | "mcq" | null | undefined;
+            template?: string | null | undefined;
+        }>;
+    } | null | undefined;
+    metadata?: {
+        difficulty: "easy" | "medium" | "hard";
+        tags: string[];
+        source?: string | null | undefined;
+        estimatedTime?: number | null | undefined;
+    } | null | undefined;
 }, mongoose.Document<unknown, {}, mongoose.FlatRecord<{
     createdAt: NativeDate;
     updatedAt: NativeDate;
@@ -53,15 +212,31 @@ declare const QuestionBankSchema: mongoose.Schema<any, mongoose.Model<any, any, 
         options: string[];
         questionText?: string | null | undefined;
         correctOption?: number | null | undefined;
+        questionAudioUrl?: string | null | undefined;
+        sectionAudioUrl?: string | null | undefined;
+        sectionImage?: string | null | undefined;
+        sectionIntroText?: string | null | undefined;
+        sectionScript?: string | null | undefined;
     }, mongoose.Types.Subdocument<mongoose.mongo.BSON.ObjectId, any, {
         options: string[];
         questionText?: string | null | undefined;
         correctOption?: number | null | undefined;
+        questionAudioUrl?: string | null | undefined;
+        sectionAudioUrl?: string | null | undefined;
+        sectionImage?: string | null | undefined;
+        sectionIntroText?: string | null | undefined;
+        sectionScript?: string | null | undefined;
     }> & {
         options: string[];
         questionText?: string | null | undefined;
         correctOption?: number | null | undefined;
+        questionAudioUrl?: string | null | undefined;
+        sectionAudioUrl?: string | null | undefined;
+        sectionImage?: string | null | undefined;
+        sectionIntroText?: string | null | undefined;
+        sectionScript?: string | null | undefined;
     }>;
+    layoutType: "split" | "single";
     taskNumber?: number | null | undefined;
     audioUrl?: string | null | undefined;
     wordCountTarget?: string | null | undefined;
@@ -81,6 +256,149 @@ declare const QuestionBankSchema: mongoose.Schema<any, mongoose.Model<any, any, 
     prepTime?: number | null | undefined;
     speakingTime?: number | null | undefined;
     passageText?: string | null | undefined;
+    title?: string | null | undefined;
+    instructions?: string | null | undefined;
+    instructionsPage2?: string | null | undefined;
+    partInstructionsText?: string | null | undefined;
+    timerSeconds?: number | null | undefined;
+    questionPoolId?: string | null | undefined;
+    leftPanel?: {
+        type: "none" | "audio" | "image" | "markdown";
+        contentBlocks: string[];
+        mediaUrl?: string | null | undefined;
+    } | null | undefined;
+    rightPanel?: {
+        sections: mongoose.Types.DocumentArray<{
+            questions: mongoose.Types.DocumentArray<{
+                options: string[];
+                id?: string | null | undefined;
+                type?: "single_select" | "inline_select" | "multi_select" | "text_input" | null | undefined;
+                label?: string | null | undefined;
+                correctAnswer?: any;
+                order?: number | null | undefined;
+            }, mongoose.Types.Subdocument<mongoose.mongo.BSON.ObjectId, any, {
+                options: string[];
+                id?: string | null | undefined;
+                type?: "single_select" | "inline_select" | "multi_select" | "text_input" | null | undefined;
+                label?: string | null | undefined;
+                correctAnswer?: any;
+                order?: number | null | undefined;
+            }> & {
+                options: string[];
+                id?: string | null | undefined;
+                type?: "single_select" | "inline_select" | "multi_select" | "text_input" | null | undefined;
+                label?: string | null | undefined;
+                correctAnswer?: any;
+                order?: number | null | undefined;
+            }>;
+            matchingQuestions: mongoose.Types.DocumentArray<{
+                id?: string | null | undefined;
+                order?: number | null | undefined;
+                statement?: string | null | undefined;
+                correctParagraph?: string | null | undefined;
+            }, mongoose.Types.Subdocument<mongoose.mongo.BSON.ObjectId, any, {
+                id?: string | null | undefined;
+                order?: number | null | undefined;
+                statement?: string | null | undefined;
+                correctParagraph?: string | null | undefined;
+            }> & {
+                id?: string | null | undefined;
+                order?: number | null | undefined;
+                statement?: string | null | undefined;
+                correctParagraph?: string | null | undefined;
+            }>;
+            type?: "standalone_dropdown" | "inline_dropdown" | "paragraph_match" | "mcq" | null | undefined;
+            template?: string | null | undefined;
+        }, mongoose.Types.Subdocument<mongoose.mongo.BSON.ObjectId, any, {
+            questions: mongoose.Types.DocumentArray<{
+                options: string[];
+                id?: string | null | undefined;
+                type?: "single_select" | "inline_select" | "multi_select" | "text_input" | null | undefined;
+                label?: string | null | undefined;
+                correctAnswer?: any;
+                order?: number | null | undefined;
+            }, mongoose.Types.Subdocument<mongoose.mongo.BSON.ObjectId, any, {
+                options: string[];
+                id?: string | null | undefined;
+                type?: "single_select" | "inline_select" | "multi_select" | "text_input" | null | undefined;
+                label?: string | null | undefined;
+                correctAnswer?: any;
+                order?: number | null | undefined;
+            }> & {
+                options: string[];
+                id?: string | null | undefined;
+                type?: "single_select" | "inline_select" | "multi_select" | "text_input" | null | undefined;
+                label?: string | null | undefined;
+                correctAnswer?: any;
+                order?: number | null | undefined;
+            }>;
+            matchingQuestions: mongoose.Types.DocumentArray<{
+                id?: string | null | undefined;
+                order?: number | null | undefined;
+                statement?: string | null | undefined;
+                correctParagraph?: string | null | undefined;
+            }, mongoose.Types.Subdocument<mongoose.mongo.BSON.ObjectId, any, {
+                id?: string | null | undefined;
+                order?: number | null | undefined;
+                statement?: string | null | undefined;
+                correctParagraph?: string | null | undefined;
+            }> & {
+                id?: string | null | undefined;
+                order?: number | null | undefined;
+                statement?: string | null | undefined;
+                correctParagraph?: string | null | undefined;
+            }>;
+            type?: "standalone_dropdown" | "inline_dropdown" | "paragraph_match" | "mcq" | null | undefined;
+            template?: string | null | undefined;
+        }> & {
+            questions: mongoose.Types.DocumentArray<{
+                options: string[];
+                id?: string | null | undefined;
+                type?: "single_select" | "inline_select" | "multi_select" | "text_input" | null | undefined;
+                label?: string | null | undefined;
+                correctAnswer?: any;
+                order?: number | null | undefined;
+            }, mongoose.Types.Subdocument<mongoose.mongo.BSON.ObjectId, any, {
+                options: string[];
+                id?: string | null | undefined;
+                type?: "single_select" | "inline_select" | "multi_select" | "text_input" | null | undefined;
+                label?: string | null | undefined;
+                correctAnswer?: any;
+                order?: number | null | undefined;
+            }> & {
+                options: string[];
+                id?: string | null | undefined;
+                type?: "single_select" | "inline_select" | "multi_select" | "text_input" | null | undefined;
+                label?: string | null | undefined;
+                correctAnswer?: any;
+                order?: number | null | undefined;
+            }>;
+            matchingQuestions: mongoose.Types.DocumentArray<{
+                id?: string | null | undefined;
+                order?: number | null | undefined;
+                statement?: string | null | undefined;
+                correctParagraph?: string | null | undefined;
+            }, mongoose.Types.Subdocument<mongoose.mongo.BSON.ObjectId, any, {
+                id?: string | null | undefined;
+                order?: number | null | undefined;
+                statement?: string | null | undefined;
+                correctParagraph?: string | null | undefined;
+            }> & {
+                id?: string | null | undefined;
+                order?: number | null | undefined;
+                statement?: string | null | undefined;
+                correctParagraph?: string | null | undefined;
+            }>;
+            type?: "standalone_dropdown" | "inline_dropdown" | "paragraph_match" | "mcq" | null | undefined;
+            template?: string | null | undefined;
+        }>;
+    } | null | undefined;
+    metadata?: {
+        difficulty: "easy" | "medium" | "hard";
+        tags: string[];
+        source?: string | null | undefined;
+        estimatedTime?: number | null | undefined;
+    } | null | undefined;
 }>, {}, mongoose.DefaultSchemaOptions> & mongoose.FlatRecord<{
     createdAt: NativeDate;
     updatedAt: NativeDate;
@@ -94,15 +412,31 @@ declare const QuestionBankSchema: mongoose.Schema<any, mongoose.Model<any, any, 
         options: string[];
         questionText?: string | null | undefined;
         correctOption?: number | null | undefined;
+        questionAudioUrl?: string | null | undefined;
+        sectionAudioUrl?: string | null | undefined;
+        sectionImage?: string | null | undefined;
+        sectionIntroText?: string | null | undefined;
+        sectionScript?: string | null | undefined;
     }, mongoose.Types.Subdocument<mongoose.mongo.BSON.ObjectId, any, {
         options: string[];
         questionText?: string | null | undefined;
         correctOption?: number | null | undefined;
+        questionAudioUrl?: string | null | undefined;
+        sectionAudioUrl?: string | null | undefined;
+        sectionImage?: string | null | undefined;
+        sectionIntroText?: string | null | undefined;
+        sectionScript?: string | null | undefined;
     }> & {
         options: string[];
         questionText?: string | null | undefined;
         correctOption?: number | null | undefined;
+        questionAudioUrl?: string | null | undefined;
+        sectionAudioUrl?: string | null | undefined;
+        sectionImage?: string | null | undefined;
+        sectionIntroText?: string | null | undefined;
+        sectionScript?: string | null | undefined;
     }>;
+    layoutType: "split" | "single";
     taskNumber?: number | null | undefined;
     audioUrl?: string | null | undefined;
     wordCountTarget?: string | null | undefined;
@@ -122,6 +456,149 @@ declare const QuestionBankSchema: mongoose.Schema<any, mongoose.Model<any, any, 
     prepTime?: number | null | undefined;
     speakingTime?: number | null | undefined;
     passageText?: string | null | undefined;
+    title?: string | null | undefined;
+    instructions?: string | null | undefined;
+    instructionsPage2?: string | null | undefined;
+    partInstructionsText?: string | null | undefined;
+    timerSeconds?: number | null | undefined;
+    questionPoolId?: string | null | undefined;
+    leftPanel?: {
+        type: "none" | "audio" | "image" | "markdown";
+        contentBlocks: string[];
+        mediaUrl?: string | null | undefined;
+    } | null | undefined;
+    rightPanel?: {
+        sections: mongoose.Types.DocumentArray<{
+            questions: mongoose.Types.DocumentArray<{
+                options: string[];
+                id?: string | null | undefined;
+                type?: "single_select" | "inline_select" | "multi_select" | "text_input" | null | undefined;
+                label?: string | null | undefined;
+                correctAnswer?: any;
+                order?: number | null | undefined;
+            }, mongoose.Types.Subdocument<mongoose.mongo.BSON.ObjectId, any, {
+                options: string[];
+                id?: string | null | undefined;
+                type?: "single_select" | "inline_select" | "multi_select" | "text_input" | null | undefined;
+                label?: string | null | undefined;
+                correctAnswer?: any;
+                order?: number | null | undefined;
+            }> & {
+                options: string[];
+                id?: string | null | undefined;
+                type?: "single_select" | "inline_select" | "multi_select" | "text_input" | null | undefined;
+                label?: string | null | undefined;
+                correctAnswer?: any;
+                order?: number | null | undefined;
+            }>;
+            matchingQuestions: mongoose.Types.DocumentArray<{
+                id?: string | null | undefined;
+                order?: number | null | undefined;
+                statement?: string | null | undefined;
+                correctParagraph?: string | null | undefined;
+            }, mongoose.Types.Subdocument<mongoose.mongo.BSON.ObjectId, any, {
+                id?: string | null | undefined;
+                order?: number | null | undefined;
+                statement?: string | null | undefined;
+                correctParagraph?: string | null | undefined;
+            }> & {
+                id?: string | null | undefined;
+                order?: number | null | undefined;
+                statement?: string | null | undefined;
+                correctParagraph?: string | null | undefined;
+            }>;
+            type?: "standalone_dropdown" | "inline_dropdown" | "paragraph_match" | "mcq" | null | undefined;
+            template?: string | null | undefined;
+        }, mongoose.Types.Subdocument<mongoose.mongo.BSON.ObjectId, any, {
+            questions: mongoose.Types.DocumentArray<{
+                options: string[];
+                id?: string | null | undefined;
+                type?: "single_select" | "inline_select" | "multi_select" | "text_input" | null | undefined;
+                label?: string | null | undefined;
+                correctAnswer?: any;
+                order?: number | null | undefined;
+            }, mongoose.Types.Subdocument<mongoose.mongo.BSON.ObjectId, any, {
+                options: string[];
+                id?: string | null | undefined;
+                type?: "single_select" | "inline_select" | "multi_select" | "text_input" | null | undefined;
+                label?: string | null | undefined;
+                correctAnswer?: any;
+                order?: number | null | undefined;
+            }> & {
+                options: string[];
+                id?: string | null | undefined;
+                type?: "single_select" | "inline_select" | "multi_select" | "text_input" | null | undefined;
+                label?: string | null | undefined;
+                correctAnswer?: any;
+                order?: number | null | undefined;
+            }>;
+            matchingQuestions: mongoose.Types.DocumentArray<{
+                id?: string | null | undefined;
+                order?: number | null | undefined;
+                statement?: string | null | undefined;
+                correctParagraph?: string | null | undefined;
+            }, mongoose.Types.Subdocument<mongoose.mongo.BSON.ObjectId, any, {
+                id?: string | null | undefined;
+                order?: number | null | undefined;
+                statement?: string | null | undefined;
+                correctParagraph?: string | null | undefined;
+            }> & {
+                id?: string | null | undefined;
+                order?: number | null | undefined;
+                statement?: string | null | undefined;
+                correctParagraph?: string | null | undefined;
+            }>;
+            type?: "standalone_dropdown" | "inline_dropdown" | "paragraph_match" | "mcq" | null | undefined;
+            template?: string | null | undefined;
+        }> & {
+            questions: mongoose.Types.DocumentArray<{
+                options: string[];
+                id?: string | null | undefined;
+                type?: "single_select" | "inline_select" | "multi_select" | "text_input" | null | undefined;
+                label?: string | null | undefined;
+                correctAnswer?: any;
+                order?: number | null | undefined;
+            }, mongoose.Types.Subdocument<mongoose.mongo.BSON.ObjectId, any, {
+                options: string[];
+                id?: string | null | undefined;
+                type?: "single_select" | "inline_select" | "multi_select" | "text_input" | null | undefined;
+                label?: string | null | undefined;
+                correctAnswer?: any;
+                order?: number | null | undefined;
+            }> & {
+                options: string[];
+                id?: string | null | undefined;
+                type?: "single_select" | "inline_select" | "multi_select" | "text_input" | null | undefined;
+                label?: string | null | undefined;
+                correctAnswer?: any;
+                order?: number | null | undefined;
+            }>;
+            matchingQuestions: mongoose.Types.DocumentArray<{
+                id?: string | null | undefined;
+                order?: number | null | undefined;
+                statement?: string | null | undefined;
+                correctParagraph?: string | null | undefined;
+            }, mongoose.Types.Subdocument<mongoose.mongo.BSON.ObjectId, any, {
+                id?: string | null | undefined;
+                order?: number | null | undefined;
+                statement?: string | null | undefined;
+                correctParagraph?: string | null | undefined;
+            }> & {
+                id?: string | null | undefined;
+                order?: number | null | undefined;
+                statement?: string | null | undefined;
+                correctParagraph?: string | null | undefined;
+            }>;
+            type?: "standalone_dropdown" | "inline_dropdown" | "paragraph_match" | "mcq" | null | undefined;
+            template?: string | null | undefined;
+        }>;
+    } | null | undefined;
+    metadata?: {
+        difficulty: "easy" | "medium" | "hard";
+        tags: string[];
+        source?: string | null | undefined;
+        estimatedTime?: number | null | undefined;
+    } | null | undefined;
 }> & {
     _id: mongoose.Types.ObjectId;
 } & {
@@ -140,15 +617,31 @@ declare const QuestionBank: mongoose.Model<{
         options: string[];
         questionText?: string | null | undefined;
         correctOption?: number | null | undefined;
+        questionAudioUrl?: string | null | undefined;
+        sectionAudioUrl?: string | null | undefined;
+        sectionImage?: string | null | undefined;
+        sectionIntroText?: string | null | undefined;
+        sectionScript?: string | null | undefined;
     }, mongoose.Types.Subdocument<mongoose.mongo.BSON.ObjectId, any, {
         options: string[];
         questionText?: string | null | undefined;
         correctOption?: number | null | undefined;
+        questionAudioUrl?: string | null | undefined;
+        sectionAudioUrl?: string | null | undefined;
+        sectionImage?: string | null | undefined;
+        sectionIntroText?: string | null | undefined;
+        sectionScript?: string | null | undefined;
     }> & {
         options: string[];
         questionText?: string | null | undefined;
         correctOption?: number | null | undefined;
+        questionAudioUrl?: string | null | undefined;
+        sectionAudioUrl?: string | null | undefined;
+        sectionImage?: string | null | undefined;
+        sectionIntroText?: string | null | undefined;
+        sectionScript?: string | null | undefined;
     }>;
+    layoutType: "split" | "single";
     taskNumber?: number | null | undefined;
     audioUrl?: string | null | undefined;
     wordCountTarget?: string | null | undefined;
@@ -168,6 +661,149 @@ declare const QuestionBank: mongoose.Model<{
     prepTime?: number | null | undefined;
     speakingTime?: number | null | undefined;
     passageText?: string | null | undefined;
+    title?: string | null | undefined;
+    instructions?: string | null | undefined;
+    instructionsPage2?: string | null | undefined;
+    partInstructionsText?: string | null | undefined;
+    timerSeconds?: number | null | undefined;
+    questionPoolId?: string | null | undefined;
+    leftPanel?: {
+        type: "none" | "audio" | "image" | "markdown";
+        contentBlocks: string[];
+        mediaUrl?: string | null | undefined;
+    } | null | undefined;
+    rightPanel?: {
+        sections: mongoose.Types.DocumentArray<{
+            questions: mongoose.Types.DocumentArray<{
+                options: string[];
+                id?: string | null | undefined;
+                type?: "single_select" | "inline_select" | "multi_select" | "text_input" | null | undefined;
+                label?: string | null | undefined;
+                correctAnswer?: any;
+                order?: number | null | undefined;
+            }, mongoose.Types.Subdocument<mongoose.mongo.BSON.ObjectId, any, {
+                options: string[];
+                id?: string | null | undefined;
+                type?: "single_select" | "inline_select" | "multi_select" | "text_input" | null | undefined;
+                label?: string | null | undefined;
+                correctAnswer?: any;
+                order?: number | null | undefined;
+            }> & {
+                options: string[];
+                id?: string | null | undefined;
+                type?: "single_select" | "inline_select" | "multi_select" | "text_input" | null | undefined;
+                label?: string | null | undefined;
+                correctAnswer?: any;
+                order?: number | null | undefined;
+            }>;
+            matchingQuestions: mongoose.Types.DocumentArray<{
+                id?: string | null | undefined;
+                order?: number | null | undefined;
+                statement?: string | null | undefined;
+                correctParagraph?: string | null | undefined;
+            }, mongoose.Types.Subdocument<mongoose.mongo.BSON.ObjectId, any, {
+                id?: string | null | undefined;
+                order?: number | null | undefined;
+                statement?: string | null | undefined;
+                correctParagraph?: string | null | undefined;
+            }> & {
+                id?: string | null | undefined;
+                order?: number | null | undefined;
+                statement?: string | null | undefined;
+                correctParagraph?: string | null | undefined;
+            }>;
+            type?: "standalone_dropdown" | "inline_dropdown" | "paragraph_match" | "mcq" | null | undefined;
+            template?: string | null | undefined;
+        }, mongoose.Types.Subdocument<mongoose.mongo.BSON.ObjectId, any, {
+            questions: mongoose.Types.DocumentArray<{
+                options: string[];
+                id?: string | null | undefined;
+                type?: "single_select" | "inline_select" | "multi_select" | "text_input" | null | undefined;
+                label?: string | null | undefined;
+                correctAnswer?: any;
+                order?: number | null | undefined;
+            }, mongoose.Types.Subdocument<mongoose.mongo.BSON.ObjectId, any, {
+                options: string[];
+                id?: string | null | undefined;
+                type?: "single_select" | "inline_select" | "multi_select" | "text_input" | null | undefined;
+                label?: string | null | undefined;
+                correctAnswer?: any;
+                order?: number | null | undefined;
+            }> & {
+                options: string[];
+                id?: string | null | undefined;
+                type?: "single_select" | "inline_select" | "multi_select" | "text_input" | null | undefined;
+                label?: string | null | undefined;
+                correctAnswer?: any;
+                order?: number | null | undefined;
+            }>;
+            matchingQuestions: mongoose.Types.DocumentArray<{
+                id?: string | null | undefined;
+                order?: number | null | undefined;
+                statement?: string | null | undefined;
+                correctParagraph?: string | null | undefined;
+            }, mongoose.Types.Subdocument<mongoose.mongo.BSON.ObjectId, any, {
+                id?: string | null | undefined;
+                order?: number | null | undefined;
+                statement?: string | null | undefined;
+                correctParagraph?: string | null | undefined;
+            }> & {
+                id?: string | null | undefined;
+                order?: number | null | undefined;
+                statement?: string | null | undefined;
+                correctParagraph?: string | null | undefined;
+            }>;
+            type?: "standalone_dropdown" | "inline_dropdown" | "paragraph_match" | "mcq" | null | undefined;
+            template?: string | null | undefined;
+        }> & {
+            questions: mongoose.Types.DocumentArray<{
+                options: string[];
+                id?: string | null | undefined;
+                type?: "single_select" | "inline_select" | "multi_select" | "text_input" | null | undefined;
+                label?: string | null | undefined;
+                correctAnswer?: any;
+                order?: number | null | undefined;
+            }, mongoose.Types.Subdocument<mongoose.mongo.BSON.ObjectId, any, {
+                options: string[];
+                id?: string | null | undefined;
+                type?: "single_select" | "inline_select" | "multi_select" | "text_input" | null | undefined;
+                label?: string | null | undefined;
+                correctAnswer?: any;
+                order?: number | null | undefined;
+            }> & {
+                options: string[];
+                id?: string | null | undefined;
+                type?: "single_select" | "inline_select" | "multi_select" | "text_input" | null | undefined;
+                label?: string | null | undefined;
+                correctAnswer?: any;
+                order?: number | null | undefined;
+            }>;
+            matchingQuestions: mongoose.Types.DocumentArray<{
+                id?: string | null | undefined;
+                order?: number | null | undefined;
+                statement?: string | null | undefined;
+                correctParagraph?: string | null | undefined;
+            }, mongoose.Types.Subdocument<mongoose.mongo.BSON.ObjectId, any, {
+                id?: string | null | undefined;
+                order?: number | null | undefined;
+                statement?: string | null | undefined;
+                correctParagraph?: string | null | undefined;
+            }> & {
+                id?: string | null | undefined;
+                order?: number | null | undefined;
+                statement?: string | null | undefined;
+                correctParagraph?: string | null | undefined;
+            }>;
+            type?: "standalone_dropdown" | "inline_dropdown" | "paragraph_match" | "mcq" | null | undefined;
+            template?: string | null | undefined;
+        }>;
+    } | null | undefined;
+    metadata?: {
+        difficulty: "easy" | "medium" | "hard";
+        tags: string[];
+        source?: string | null | undefined;
+        estimatedTime?: number | null | undefined;
+    } | null | undefined;
 }, {}, {}, {}, mongoose.Document<unknown, {}, {
     createdAt: NativeDate;
     updatedAt: NativeDate;
@@ -181,15 +817,31 @@ declare const QuestionBank: mongoose.Model<{
         options: string[];
         questionText?: string | null | undefined;
         correctOption?: number | null | undefined;
+        questionAudioUrl?: string | null | undefined;
+        sectionAudioUrl?: string | null | undefined;
+        sectionImage?: string | null | undefined;
+        sectionIntroText?: string | null | undefined;
+        sectionScript?: string | null | undefined;
     }, mongoose.Types.Subdocument<mongoose.mongo.BSON.ObjectId, any, {
         options: string[];
         questionText?: string | null | undefined;
         correctOption?: number | null | undefined;
+        questionAudioUrl?: string | null | undefined;
+        sectionAudioUrl?: string | null | undefined;
+        sectionImage?: string | null | undefined;
+        sectionIntroText?: string | null | undefined;
+        sectionScript?: string | null | undefined;
     }> & {
         options: string[];
         questionText?: string | null | undefined;
         correctOption?: number | null | undefined;
+        questionAudioUrl?: string | null | undefined;
+        sectionAudioUrl?: string | null | undefined;
+        sectionImage?: string | null | undefined;
+        sectionIntroText?: string | null | undefined;
+        sectionScript?: string | null | undefined;
     }>;
+    layoutType: "split" | "single";
     taskNumber?: number | null | undefined;
     audioUrl?: string | null | undefined;
     wordCountTarget?: string | null | undefined;
@@ -209,6 +861,149 @@ declare const QuestionBank: mongoose.Model<{
     prepTime?: number | null | undefined;
     speakingTime?: number | null | undefined;
     passageText?: string | null | undefined;
+    title?: string | null | undefined;
+    instructions?: string | null | undefined;
+    instructionsPage2?: string | null | undefined;
+    partInstructionsText?: string | null | undefined;
+    timerSeconds?: number | null | undefined;
+    questionPoolId?: string | null | undefined;
+    leftPanel?: {
+        type: "none" | "audio" | "image" | "markdown";
+        contentBlocks: string[];
+        mediaUrl?: string | null | undefined;
+    } | null | undefined;
+    rightPanel?: {
+        sections: mongoose.Types.DocumentArray<{
+            questions: mongoose.Types.DocumentArray<{
+                options: string[];
+                id?: string | null | undefined;
+                type?: "single_select" | "inline_select" | "multi_select" | "text_input" | null | undefined;
+                label?: string | null | undefined;
+                correctAnswer?: any;
+                order?: number | null | undefined;
+            }, mongoose.Types.Subdocument<mongoose.mongo.BSON.ObjectId, any, {
+                options: string[];
+                id?: string | null | undefined;
+                type?: "single_select" | "inline_select" | "multi_select" | "text_input" | null | undefined;
+                label?: string | null | undefined;
+                correctAnswer?: any;
+                order?: number | null | undefined;
+            }> & {
+                options: string[];
+                id?: string | null | undefined;
+                type?: "single_select" | "inline_select" | "multi_select" | "text_input" | null | undefined;
+                label?: string | null | undefined;
+                correctAnswer?: any;
+                order?: number | null | undefined;
+            }>;
+            matchingQuestions: mongoose.Types.DocumentArray<{
+                id?: string | null | undefined;
+                order?: number | null | undefined;
+                statement?: string | null | undefined;
+                correctParagraph?: string | null | undefined;
+            }, mongoose.Types.Subdocument<mongoose.mongo.BSON.ObjectId, any, {
+                id?: string | null | undefined;
+                order?: number | null | undefined;
+                statement?: string | null | undefined;
+                correctParagraph?: string | null | undefined;
+            }> & {
+                id?: string | null | undefined;
+                order?: number | null | undefined;
+                statement?: string | null | undefined;
+                correctParagraph?: string | null | undefined;
+            }>;
+            type?: "standalone_dropdown" | "inline_dropdown" | "paragraph_match" | "mcq" | null | undefined;
+            template?: string | null | undefined;
+        }, mongoose.Types.Subdocument<mongoose.mongo.BSON.ObjectId, any, {
+            questions: mongoose.Types.DocumentArray<{
+                options: string[];
+                id?: string | null | undefined;
+                type?: "single_select" | "inline_select" | "multi_select" | "text_input" | null | undefined;
+                label?: string | null | undefined;
+                correctAnswer?: any;
+                order?: number | null | undefined;
+            }, mongoose.Types.Subdocument<mongoose.mongo.BSON.ObjectId, any, {
+                options: string[];
+                id?: string | null | undefined;
+                type?: "single_select" | "inline_select" | "multi_select" | "text_input" | null | undefined;
+                label?: string | null | undefined;
+                correctAnswer?: any;
+                order?: number | null | undefined;
+            }> & {
+                options: string[];
+                id?: string | null | undefined;
+                type?: "single_select" | "inline_select" | "multi_select" | "text_input" | null | undefined;
+                label?: string | null | undefined;
+                correctAnswer?: any;
+                order?: number | null | undefined;
+            }>;
+            matchingQuestions: mongoose.Types.DocumentArray<{
+                id?: string | null | undefined;
+                order?: number | null | undefined;
+                statement?: string | null | undefined;
+                correctParagraph?: string | null | undefined;
+            }, mongoose.Types.Subdocument<mongoose.mongo.BSON.ObjectId, any, {
+                id?: string | null | undefined;
+                order?: number | null | undefined;
+                statement?: string | null | undefined;
+                correctParagraph?: string | null | undefined;
+            }> & {
+                id?: string | null | undefined;
+                order?: number | null | undefined;
+                statement?: string | null | undefined;
+                correctParagraph?: string | null | undefined;
+            }>;
+            type?: "standalone_dropdown" | "inline_dropdown" | "paragraph_match" | "mcq" | null | undefined;
+            template?: string | null | undefined;
+        }> & {
+            questions: mongoose.Types.DocumentArray<{
+                options: string[];
+                id?: string | null | undefined;
+                type?: "single_select" | "inline_select" | "multi_select" | "text_input" | null | undefined;
+                label?: string | null | undefined;
+                correctAnswer?: any;
+                order?: number | null | undefined;
+            }, mongoose.Types.Subdocument<mongoose.mongo.BSON.ObjectId, any, {
+                options: string[];
+                id?: string | null | undefined;
+                type?: "single_select" | "inline_select" | "multi_select" | "text_input" | null | undefined;
+                label?: string | null | undefined;
+                correctAnswer?: any;
+                order?: number | null | undefined;
+            }> & {
+                options: string[];
+                id?: string | null | undefined;
+                type?: "single_select" | "inline_select" | "multi_select" | "text_input" | null | undefined;
+                label?: string | null | undefined;
+                correctAnswer?: any;
+                order?: number | null | undefined;
+            }>;
+            matchingQuestions: mongoose.Types.DocumentArray<{
+                id?: string | null | undefined;
+                order?: number | null | undefined;
+                statement?: string | null | undefined;
+                correctParagraph?: string | null | undefined;
+            }, mongoose.Types.Subdocument<mongoose.mongo.BSON.ObjectId, any, {
+                id?: string | null | undefined;
+                order?: number | null | undefined;
+                statement?: string | null | undefined;
+                correctParagraph?: string | null | undefined;
+            }> & {
+                id?: string | null | undefined;
+                order?: number | null | undefined;
+                statement?: string | null | undefined;
+                correctParagraph?: string | null | undefined;
+            }>;
+            type?: "standalone_dropdown" | "inline_dropdown" | "paragraph_match" | "mcq" | null | undefined;
+            template?: string | null | undefined;
+        }>;
+    } | null | undefined;
+    metadata?: {
+        difficulty: "easy" | "medium" | "hard";
+        tags: string[];
+        source?: string | null | undefined;
+        estimatedTime?: number | null | undefined;
+    } | null | undefined;
 }, {}, mongoose.DefaultSchemaOptions> & {
     createdAt: NativeDate;
     updatedAt: NativeDate;
@@ -222,15 +1017,31 @@ declare const QuestionBank: mongoose.Model<{
         options: string[];
         questionText?: string | null | undefined;
         correctOption?: number | null | undefined;
+        questionAudioUrl?: string | null | undefined;
+        sectionAudioUrl?: string | null | undefined;
+        sectionImage?: string | null | undefined;
+        sectionIntroText?: string | null | undefined;
+        sectionScript?: string | null | undefined;
     }, mongoose.Types.Subdocument<mongoose.mongo.BSON.ObjectId, any, {
         options: string[];
         questionText?: string | null | undefined;
         correctOption?: number | null | undefined;
+        questionAudioUrl?: string | null | undefined;
+        sectionAudioUrl?: string | null | undefined;
+        sectionImage?: string | null | undefined;
+        sectionIntroText?: string | null | undefined;
+        sectionScript?: string | null | undefined;
     }> & {
         options: string[];
         questionText?: string | null | undefined;
         correctOption?: number | null | undefined;
+        questionAudioUrl?: string | null | undefined;
+        sectionAudioUrl?: string | null | undefined;
+        sectionImage?: string | null | undefined;
+        sectionIntroText?: string | null | undefined;
+        sectionScript?: string | null | undefined;
     }>;
+    layoutType: "split" | "single";
     taskNumber?: number | null | undefined;
     audioUrl?: string | null | undefined;
     wordCountTarget?: string | null | undefined;
@@ -250,6 +1061,149 @@ declare const QuestionBank: mongoose.Model<{
     prepTime?: number | null | undefined;
     speakingTime?: number | null | undefined;
     passageText?: string | null | undefined;
+    title?: string | null | undefined;
+    instructions?: string | null | undefined;
+    instructionsPage2?: string | null | undefined;
+    partInstructionsText?: string | null | undefined;
+    timerSeconds?: number | null | undefined;
+    questionPoolId?: string | null | undefined;
+    leftPanel?: {
+        type: "none" | "audio" | "image" | "markdown";
+        contentBlocks: string[];
+        mediaUrl?: string | null | undefined;
+    } | null | undefined;
+    rightPanel?: {
+        sections: mongoose.Types.DocumentArray<{
+            questions: mongoose.Types.DocumentArray<{
+                options: string[];
+                id?: string | null | undefined;
+                type?: "single_select" | "inline_select" | "multi_select" | "text_input" | null | undefined;
+                label?: string | null | undefined;
+                correctAnswer?: any;
+                order?: number | null | undefined;
+            }, mongoose.Types.Subdocument<mongoose.mongo.BSON.ObjectId, any, {
+                options: string[];
+                id?: string | null | undefined;
+                type?: "single_select" | "inline_select" | "multi_select" | "text_input" | null | undefined;
+                label?: string | null | undefined;
+                correctAnswer?: any;
+                order?: number | null | undefined;
+            }> & {
+                options: string[];
+                id?: string | null | undefined;
+                type?: "single_select" | "inline_select" | "multi_select" | "text_input" | null | undefined;
+                label?: string | null | undefined;
+                correctAnswer?: any;
+                order?: number | null | undefined;
+            }>;
+            matchingQuestions: mongoose.Types.DocumentArray<{
+                id?: string | null | undefined;
+                order?: number | null | undefined;
+                statement?: string | null | undefined;
+                correctParagraph?: string | null | undefined;
+            }, mongoose.Types.Subdocument<mongoose.mongo.BSON.ObjectId, any, {
+                id?: string | null | undefined;
+                order?: number | null | undefined;
+                statement?: string | null | undefined;
+                correctParagraph?: string | null | undefined;
+            }> & {
+                id?: string | null | undefined;
+                order?: number | null | undefined;
+                statement?: string | null | undefined;
+                correctParagraph?: string | null | undefined;
+            }>;
+            type?: "standalone_dropdown" | "inline_dropdown" | "paragraph_match" | "mcq" | null | undefined;
+            template?: string | null | undefined;
+        }, mongoose.Types.Subdocument<mongoose.mongo.BSON.ObjectId, any, {
+            questions: mongoose.Types.DocumentArray<{
+                options: string[];
+                id?: string | null | undefined;
+                type?: "single_select" | "inline_select" | "multi_select" | "text_input" | null | undefined;
+                label?: string | null | undefined;
+                correctAnswer?: any;
+                order?: number | null | undefined;
+            }, mongoose.Types.Subdocument<mongoose.mongo.BSON.ObjectId, any, {
+                options: string[];
+                id?: string | null | undefined;
+                type?: "single_select" | "inline_select" | "multi_select" | "text_input" | null | undefined;
+                label?: string | null | undefined;
+                correctAnswer?: any;
+                order?: number | null | undefined;
+            }> & {
+                options: string[];
+                id?: string | null | undefined;
+                type?: "single_select" | "inline_select" | "multi_select" | "text_input" | null | undefined;
+                label?: string | null | undefined;
+                correctAnswer?: any;
+                order?: number | null | undefined;
+            }>;
+            matchingQuestions: mongoose.Types.DocumentArray<{
+                id?: string | null | undefined;
+                order?: number | null | undefined;
+                statement?: string | null | undefined;
+                correctParagraph?: string | null | undefined;
+            }, mongoose.Types.Subdocument<mongoose.mongo.BSON.ObjectId, any, {
+                id?: string | null | undefined;
+                order?: number | null | undefined;
+                statement?: string | null | undefined;
+                correctParagraph?: string | null | undefined;
+            }> & {
+                id?: string | null | undefined;
+                order?: number | null | undefined;
+                statement?: string | null | undefined;
+                correctParagraph?: string | null | undefined;
+            }>;
+            type?: "standalone_dropdown" | "inline_dropdown" | "paragraph_match" | "mcq" | null | undefined;
+            template?: string | null | undefined;
+        }> & {
+            questions: mongoose.Types.DocumentArray<{
+                options: string[];
+                id?: string | null | undefined;
+                type?: "single_select" | "inline_select" | "multi_select" | "text_input" | null | undefined;
+                label?: string | null | undefined;
+                correctAnswer?: any;
+                order?: number | null | undefined;
+            }, mongoose.Types.Subdocument<mongoose.mongo.BSON.ObjectId, any, {
+                options: string[];
+                id?: string | null | undefined;
+                type?: "single_select" | "inline_select" | "multi_select" | "text_input" | null | undefined;
+                label?: string | null | undefined;
+                correctAnswer?: any;
+                order?: number | null | undefined;
+            }> & {
+                options: string[];
+                id?: string | null | undefined;
+                type?: "single_select" | "inline_select" | "multi_select" | "text_input" | null | undefined;
+                label?: string | null | undefined;
+                correctAnswer?: any;
+                order?: number | null | undefined;
+            }>;
+            matchingQuestions: mongoose.Types.DocumentArray<{
+                id?: string | null | undefined;
+                order?: number | null | undefined;
+                statement?: string | null | undefined;
+                correctParagraph?: string | null | undefined;
+            }, mongoose.Types.Subdocument<mongoose.mongo.BSON.ObjectId, any, {
+                id?: string | null | undefined;
+                order?: number | null | undefined;
+                statement?: string | null | undefined;
+                correctParagraph?: string | null | undefined;
+            }> & {
+                id?: string | null | undefined;
+                order?: number | null | undefined;
+                statement?: string | null | undefined;
+                correctParagraph?: string | null | undefined;
+            }>;
+            type?: "standalone_dropdown" | "inline_dropdown" | "paragraph_match" | "mcq" | null | undefined;
+            template?: string | null | undefined;
+        }>;
+    } | null | undefined;
+    metadata?: {
+        difficulty: "easy" | "medium" | "hard";
+        tags: string[];
+        source?: string | null | undefined;
+        estimatedTime?: number | null | undefined;
+    } | null | undefined;
 } & {
     _id: mongoose.Types.ObjectId;
 } & {
@@ -267,15 +1221,31 @@ declare const QuestionBank: mongoose.Model<{
         options: string[];
         questionText?: string | null | undefined;
         correctOption?: number | null | undefined;
+        questionAudioUrl?: string | null | undefined;
+        sectionAudioUrl?: string | null | undefined;
+        sectionImage?: string | null | undefined;
+        sectionIntroText?: string | null | undefined;
+        sectionScript?: string | null | undefined;
     }, mongoose.Types.Subdocument<mongoose.mongo.BSON.ObjectId, any, {
         options: string[];
         questionText?: string | null | undefined;
         correctOption?: number | null | undefined;
+        questionAudioUrl?: string | null | undefined;
+        sectionAudioUrl?: string | null | undefined;
+        sectionImage?: string | null | undefined;
+        sectionIntroText?: string | null | undefined;
+        sectionScript?: string | null | undefined;
     }> & {
         options: string[];
         questionText?: string | null | undefined;
         correctOption?: number | null | undefined;
+        questionAudioUrl?: string | null | undefined;
+        sectionAudioUrl?: string | null | undefined;
+        sectionImage?: string | null | undefined;
+        sectionIntroText?: string | null | undefined;
+        sectionScript?: string | null | undefined;
     }>;
+    layoutType: "split" | "single";
     taskNumber?: number | null | undefined;
     audioUrl?: string | null | undefined;
     wordCountTarget?: string | null | undefined;
@@ -295,6 +1265,149 @@ declare const QuestionBank: mongoose.Model<{
     prepTime?: number | null | undefined;
     speakingTime?: number | null | undefined;
     passageText?: string | null | undefined;
+    title?: string | null | undefined;
+    instructions?: string | null | undefined;
+    instructionsPage2?: string | null | undefined;
+    partInstructionsText?: string | null | undefined;
+    timerSeconds?: number | null | undefined;
+    questionPoolId?: string | null | undefined;
+    leftPanel?: {
+        type: "none" | "audio" | "image" | "markdown";
+        contentBlocks: string[];
+        mediaUrl?: string | null | undefined;
+    } | null | undefined;
+    rightPanel?: {
+        sections: mongoose.Types.DocumentArray<{
+            questions: mongoose.Types.DocumentArray<{
+                options: string[];
+                id?: string | null | undefined;
+                type?: "single_select" | "inline_select" | "multi_select" | "text_input" | null | undefined;
+                label?: string | null | undefined;
+                correctAnswer?: any;
+                order?: number | null | undefined;
+            }, mongoose.Types.Subdocument<mongoose.mongo.BSON.ObjectId, any, {
+                options: string[];
+                id?: string | null | undefined;
+                type?: "single_select" | "inline_select" | "multi_select" | "text_input" | null | undefined;
+                label?: string | null | undefined;
+                correctAnswer?: any;
+                order?: number | null | undefined;
+            }> & {
+                options: string[];
+                id?: string | null | undefined;
+                type?: "single_select" | "inline_select" | "multi_select" | "text_input" | null | undefined;
+                label?: string | null | undefined;
+                correctAnswer?: any;
+                order?: number | null | undefined;
+            }>;
+            matchingQuestions: mongoose.Types.DocumentArray<{
+                id?: string | null | undefined;
+                order?: number | null | undefined;
+                statement?: string | null | undefined;
+                correctParagraph?: string | null | undefined;
+            }, mongoose.Types.Subdocument<mongoose.mongo.BSON.ObjectId, any, {
+                id?: string | null | undefined;
+                order?: number | null | undefined;
+                statement?: string | null | undefined;
+                correctParagraph?: string | null | undefined;
+            }> & {
+                id?: string | null | undefined;
+                order?: number | null | undefined;
+                statement?: string | null | undefined;
+                correctParagraph?: string | null | undefined;
+            }>;
+            type?: "standalone_dropdown" | "inline_dropdown" | "paragraph_match" | "mcq" | null | undefined;
+            template?: string | null | undefined;
+        }, mongoose.Types.Subdocument<mongoose.mongo.BSON.ObjectId, any, {
+            questions: mongoose.Types.DocumentArray<{
+                options: string[];
+                id?: string | null | undefined;
+                type?: "single_select" | "inline_select" | "multi_select" | "text_input" | null | undefined;
+                label?: string | null | undefined;
+                correctAnswer?: any;
+                order?: number | null | undefined;
+            }, mongoose.Types.Subdocument<mongoose.mongo.BSON.ObjectId, any, {
+                options: string[];
+                id?: string | null | undefined;
+                type?: "single_select" | "inline_select" | "multi_select" | "text_input" | null | undefined;
+                label?: string | null | undefined;
+                correctAnswer?: any;
+                order?: number | null | undefined;
+            }> & {
+                options: string[];
+                id?: string | null | undefined;
+                type?: "single_select" | "inline_select" | "multi_select" | "text_input" | null | undefined;
+                label?: string | null | undefined;
+                correctAnswer?: any;
+                order?: number | null | undefined;
+            }>;
+            matchingQuestions: mongoose.Types.DocumentArray<{
+                id?: string | null | undefined;
+                order?: number | null | undefined;
+                statement?: string | null | undefined;
+                correctParagraph?: string | null | undefined;
+            }, mongoose.Types.Subdocument<mongoose.mongo.BSON.ObjectId, any, {
+                id?: string | null | undefined;
+                order?: number | null | undefined;
+                statement?: string | null | undefined;
+                correctParagraph?: string | null | undefined;
+            }> & {
+                id?: string | null | undefined;
+                order?: number | null | undefined;
+                statement?: string | null | undefined;
+                correctParagraph?: string | null | undefined;
+            }>;
+            type?: "standalone_dropdown" | "inline_dropdown" | "paragraph_match" | "mcq" | null | undefined;
+            template?: string | null | undefined;
+        }> & {
+            questions: mongoose.Types.DocumentArray<{
+                options: string[];
+                id?: string | null | undefined;
+                type?: "single_select" | "inline_select" | "multi_select" | "text_input" | null | undefined;
+                label?: string | null | undefined;
+                correctAnswer?: any;
+                order?: number | null | undefined;
+            }, mongoose.Types.Subdocument<mongoose.mongo.BSON.ObjectId, any, {
+                options: string[];
+                id?: string | null | undefined;
+                type?: "single_select" | "inline_select" | "multi_select" | "text_input" | null | undefined;
+                label?: string | null | undefined;
+                correctAnswer?: any;
+                order?: number | null | undefined;
+            }> & {
+                options: string[];
+                id?: string | null | undefined;
+                type?: "single_select" | "inline_select" | "multi_select" | "text_input" | null | undefined;
+                label?: string | null | undefined;
+                correctAnswer?: any;
+                order?: number | null | undefined;
+            }>;
+            matchingQuestions: mongoose.Types.DocumentArray<{
+                id?: string | null | undefined;
+                order?: number | null | undefined;
+                statement?: string | null | undefined;
+                correctParagraph?: string | null | undefined;
+            }, mongoose.Types.Subdocument<mongoose.mongo.BSON.ObjectId, any, {
+                id?: string | null | undefined;
+                order?: number | null | undefined;
+                statement?: string | null | undefined;
+                correctParagraph?: string | null | undefined;
+            }> & {
+                id?: string | null | undefined;
+                order?: number | null | undefined;
+                statement?: string | null | undefined;
+                correctParagraph?: string | null | undefined;
+            }>;
+            type?: "standalone_dropdown" | "inline_dropdown" | "paragraph_match" | "mcq" | null | undefined;
+            template?: string | null | undefined;
+        }>;
+    } | null | undefined;
+    metadata?: {
+        difficulty: "easy" | "medium" | "hard";
+        tags: string[];
+        source?: string | null | undefined;
+        estimatedTime?: number | null | undefined;
+    } | null | undefined;
 }, mongoose.Document<unknown, {}, mongoose.FlatRecord<{
     createdAt: NativeDate;
     updatedAt: NativeDate;
@@ -308,15 +1421,31 @@ declare const QuestionBank: mongoose.Model<{
         options: string[];
         questionText?: string | null | undefined;
         correctOption?: number | null | undefined;
+        questionAudioUrl?: string | null | undefined;
+        sectionAudioUrl?: string | null | undefined;
+        sectionImage?: string | null | undefined;
+        sectionIntroText?: string | null | undefined;
+        sectionScript?: string | null | undefined;
     }, mongoose.Types.Subdocument<mongoose.mongo.BSON.ObjectId, any, {
         options: string[];
         questionText?: string | null | undefined;
         correctOption?: number | null | undefined;
+        questionAudioUrl?: string | null | undefined;
+        sectionAudioUrl?: string | null | undefined;
+        sectionImage?: string | null | undefined;
+        sectionIntroText?: string | null | undefined;
+        sectionScript?: string | null | undefined;
     }> & {
         options: string[];
         questionText?: string | null | undefined;
         correctOption?: number | null | undefined;
+        questionAudioUrl?: string | null | undefined;
+        sectionAudioUrl?: string | null | undefined;
+        sectionImage?: string | null | undefined;
+        sectionIntroText?: string | null | undefined;
+        sectionScript?: string | null | undefined;
     }>;
+    layoutType: "split" | "single";
     taskNumber?: number | null | undefined;
     audioUrl?: string | null | undefined;
     wordCountTarget?: string | null | undefined;
@@ -336,6 +1465,149 @@ declare const QuestionBank: mongoose.Model<{
     prepTime?: number | null | undefined;
     speakingTime?: number | null | undefined;
     passageText?: string | null | undefined;
+    title?: string | null | undefined;
+    instructions?: string | null | undefined;
+    instructionsPage2?: string | null | undefined;
+    partInstructionsText?: string | null | undefined;
+    timerSeconds?: number | null | undefined;
+    questionPoolId?: string | null | undefined;
+    leftPanel?: {
+        type: "none" | "audio" | "image" | "markdown";
+        contentBlocks: string[];
+        mediaUrl?: string | null | undefined;
+    } | null | undefined;
+    rightPanel?: {
+        sections: mongoose.Types.DocumentArray<{
+            questions: mongoose.Types.DocumentArray<{
+                options: string[];
+                id?: string | null | undefined;
+                type?: "single_select" | "inline_select" | "multi_select" | "text_input" | null | undefined;
+                label?: string | null | undefined;
+                correctAnswer?: any;
+                order?: number | null | undefined;
+            }, mongoose.Types.Subdocument<mongoose.mongo.BSON.ObjectId, any, {
+                options: string[];
+                id?: string | null | undefined;
+                type?: "single_select" | "inline_select" | "multi_select" | "text_input" | null | undefined;
+                label?: string | null | undefined;
+                correctAnswer?: any;
+                order?: number | null | undefined;
+            }> & {
+                options: string[];
+                id?: string | null | undefined;
+                type?: "single_select" | "inline_select" | "multi_select" | "text_input" | null | undefined;
+                label?: string | null | undefined;
+                correctAnswer?: any;
+                order?: number | null | undefined;
+            }>;
+            matchingQuestions: mongoose.Types.DocumentArray<{
+                id?: string | null | undefined;
+                order?: number | null | undefined;
+                statement?: string | null | undefined;
+                correctParagraph?: string | null | undefined;
+            }, mongoose.Types.Subdocument<mongoose.mongo.BSON.ObjectId, any, {
+                id?: string | null | undefined;
+                order?: number | null | undefined;
+                statement?: string | null | undefined;
+                correctParagraph?: string | null | undefined;
+            }> & {
+                id?: string | null | undefined;
+                order?: number | null | undefined;
+                statement?: string | null | undefined;
+                correctParagraph?: string | null | undefined;
+            }>;
+            type?: "standalone_dropdown" | "inline_dropdown" | "paragraph_match" | "mcq" | null | undefined;
+            template?: string | null | undefined;
+        }, mongoose.Types.Subdocument<mongoose.mongo.BSON.ObjectId, any, {
+            questions: mongoose.Types.DocumentArray<{
+                options: string[];
+                id?: string | null | undefined;
+                type?: "single_select" | "inline_select" | "multi_select" | "text_input" | null | undefined;
+                label?: string | null | undefined;
+                correctAnswer?: any;
+                order?: number | null | undefined;
+            }, mongoose.Types.Subdocument<mongoose.mongo.BSON.ObjectId, any, {
+                options: string[];
+                id?: string | null | undefined;
+                type?: "single_select" | "inline_select" | "multi_select" | "text_input" | null | undefined;
+                label?: string | null | undefined;
+                correctAnswer?: any;
+                order?: number | null | undefined;
+            }> & {
+                options: string[];
+                id?: string | null | undefined;
+                type?: "single_select" | "inline_select" | "multi_select" | "text_input" | null | undefined;
+                label?: string | null | undefined;
+                correctAnswer?: any;
+                order?: number | null | undefined;
+            }>;
+            matchingQuestions: mongoose.Types.DocumentArray<{
+                id?: string | null | undefined;
+                order?: number | null | undefined;
+                statement?: string | null | undefined;
+                correctParagraph?: string | null | undefined;
+            }, mongoose.Types.Subdocument<mongoose.mongo.BSON.ObjectId, any, {
+                id?: string | null | undefined;
+                order?: number | null | undefined;
+                statement?: string | null | undefined;
+                correctParagraph?: string | null | undefined;
+            }> & {
+                id?: string | null | undefined;
+                order?: number | null | undefined;
+                statement?: string | null | undefined;
+                correctParagraph?: string | null | undefined;
+            }>;
+            type?: "standalone_dropdown" | "inline_dropdown" | "paragraph_match" | "mcq" | null | undefined;
+            template?: string | null | undefined;
+        }> & {
+            questions: mongoose.Types.DocumentArray<{
+                options: string[];
+                id?: string | null | undefined;
+                type?: "single_select" | "inline_select" | "multi_select" | "text_input" | null | undefined;
+                label?: string | null | undefined;
+                correctAnswer?: any;
+                order?: number | null | undefined;
+            }, mongoose.Types.Subdocument<mongoose.mongo.BSON.ObjectId, any, {
+                options: string[];
+                id?: string | null | undefined;
+                type?: "single_select" | "inline_select" | "multi_select" | "text_input" | null | undefined;
+                label?: string | null | undefined;
+                correctAnswer?: any;
+                order?: number | null | undefined;
+            }> & {
+                options: string[];
+                id?: string | null | undefined;
+                type?: "single_select" | "inline_select" | "multi_select" | "text_input" | null | undefined;
+                label?: string | null | undefined;
+                correctAnswer?: any;
+                order?: number | null | undefined;
+            }>;
+            matchingQuestions: mongoose.Types.DocumentArray<{
+                id?: string | null | undefined;
+                order?: number | null | undefined;
+                statement?: string | null | undefined;
+                correctParagraph?: string | null | undefined;
+            }, mongoose.Types.Subdocument<mongoose.mongo.BSON.ObjectId, any, {
+                id?: string | null | undefined;
+                order?: number | null | undefined;
+                statement?: string | null | undefined;
+                correctParagraph?: string | null | undefined;
+            }> & {
+                id?: string | null | undefined;
+                order?: number | null | undefined;
+                statement?: string | null | undefined;
+                correctParagraph?: string | null | undefined;
+            }>;
+            type?: "standalone_dropdown" | "inline_dropdown" | "paragraph_match" | "mcq" | null | undefined;
+            template?: string | null | undefined;
+        }>;
+    } | null | undefined;
+    metadata?: {
+        difficulty: "easy" | "medium" | "hard";
+        tags: string[];
+        source?: string | null | undefined;
+        estimatedTime?: number | null | undefined;
+    } | null | undefined;
 }>, {}, mongoose.DefaultSchemaOptions> & mongoose.FlatRecord<{
     createdAt: NativeDate;
     updatedAt: NativeDate;
@@ -349,15 +1621,31 @@ declare const QuestionBank: mongoose.Model<{
         options: string[];
         questionText?: string | null | undefined;
         correctOption?: number | null | undefined;
+        questionAudioUrl?: string | null | undefined;
+        sectionAudioUrl?: string | null | undefined;
+        sectionImage?: string | null | undefined;
+        sectionIntroText?: string | null | undefined;
+        sectionScript?: string | null | undefined;
     }, mongoose.Types.Subdocument<mongoose.mongo.BSON.ObjectId, any, {
         options: string[];
         questionText?: string | null | undefined;
         correctOption?: number | null | undefined;
+        questionAudioUrl?: string | null | undefined;
+        sectionAudioUrl?: string | null | undefined;
+        sectionImage?: string | null | undefined;
+        sectionIntroText?: string | null | undefined;
+        sectionScript?: string | null | undefined;
     }> & {
         options: string[];
         questionText?: string | null | undefined;
         correctOption?: number | null | undefined;
+        questionAudioUrl?: string | null | undefined;
+        sectionAudioUrl?: string | null | undefined;
+        sectionImage?: string | null | undefined;
+        sectionIntroText?: string | null | undefined;
+        sectionScript?: string | null | undefined;
     }>;
+    layoutType: "split" | "single";
     taskNumber?: number | null | undefined;
     audioUrl?: string | null | undefined;
     wordCountTarget?: string | null | undefined;
@@ -377,6 +1665,149 @@ declare const QuestionBank: mongoose.Model<{
     prepTime?: number | null | undefined;
     speakingTime?: number | null | undefined;
     passageText?: string | null | undefined;
+    title?: string | null | undefined;
+    instructions?: string | null | undefined;
+    instructionsPage2?: string | null | undefined;
+    partInstructionsText?: string | null | undefined;
+    timerSeconds?: number | null | undefined;
+    questionPoolId?: string | null | undefined;
+    leftPanel?: {
+        type: "none" | "audio" | "image" | "markdown";
+        contentBlocks: string[];
+        mediaUrl?: string | null | undefined;
+    } | null | undefined;
+    rightPanel?: {
+        sections: mongoose.Types.DocumentArray<{
+            questions: mongoose.Types.DocumentArray<{
+                options: string[];
+                id?: string | null | undefined;
+                type?: "single_select" | "inline_select" | "multi_select" | "text_input" | null | undefined;
+                label?: string | null | undefined;
+                correctAnswer?: any;
+                order?: number | null | undefined;
+            }, mongoose.Types.Subdocument<mongoose.mongo.BSON.ObjectId, any, {
+                options: string[];
+                id?: string | null | undefined;
+                type?: "single_select" | "inline_select" | "multi_select" | "text_input" | null | undefined;
+                label?: string | null | undefined;
+                correctAnswer?: any;
+                order?: number | null | undefined;
+            }> & {
+                options: string[];
+                id?: string | null | undefined;
+                type?: "single_select" | "inline_select" | "multi_select" | "text_input" | null | undefined;
+                label?: string | null | undefined;
+                correctAnswer?: any;
+                order?: number | null | undefined;
+            }>;
+            matchingQuestions: mongoose.Types.DocumentArray<{
+                id?: string | null | undefined;
+                order?: number | null | undefined;
+                statement?: string | null | undefined;
+                correctParagraph?: string | null | undefined;
+            }, mongoose.Types.Subdocument<mongoose.mongo.BSON.ObjectId, any, {
+                id?: string | null | undefined;
+                order?: number | null | undefined;
+                statement?: string | null | undefined;
+                correctParagraph?: string | null | undefined;
+            }> & {
+                id?: string | null | undefined;
+                order?: number | null | undefined;
+                statement?: string | null | undefined;
+                correctParagraph?: string | null | undefined;
+            }>;
+            type?: "standalone_dropdown" | "inline_dropdown" | "paragraph_match" | "mcq" | null | undefined;
+            template?: string | null | undefined;
+        }, mongoose.Types.Subdocument<mongoose.mongo.BSON.ObjectId, any, {
+            questions: mongoose.Types.DocumentArray<{
+                options: string[];
+                id?: string | null | undefined;
+                type?: "single_select" | "inline_select" | "multi_select" | "text_input" | null | undefined;
+                label?: string | null | undefined;
+                correctAnswer?: any;
+                order?: number | null | undefined;
+            }, mongoose.Types.Subdocument<mongoose.mongo.BSON.ObjectId, any, {
+                options: string[];
+                id?: string | null | undefined;
+                type?: "single_select" | "inline_select" | "multi_select" | "text_input" | null | undefined;
+                label?: string | null | undefined;
+                correctAnswer?: any;
+                order?: number | null | undefined;
+            }> & {
+                options: string[];
+                id?: string | null | undefined;
+                type?: "single_select" | "inline_select" | "multi_select" | "text_input" | null | undefined;
+                label?: string | null | undefined;
+                correctAnswer?: any;
+                order?: number | null | undefined;
+            }>;
+            matchingQuestions: mongoose.Types.DocumentArray<{
+                id?: string | null | undefined;
+                order?: number | null | undefined;
+                statement?: string | null | undefined;
+                correctParagraph?: string | null | undefined;
+            }, mongoose.Types.Subdocument<mongoose.mongo.BSON.ObjectId, any, {
+                id?: string | null | undefined;
+                order?: number | null | undefined;
+                statement?: string | null | undefined;
+                correctParagraph?: string | null | undefined;
+            }> & {
+                id?: string | null | undefined;
+                order?: number | null | undefined;
+                statement?: string | null | undefined;
+                correctParagraph?: string | null | undefined;
+            }>;
+            type?: "standalone_dropdown" | "inline_dropdown" | "paragraph_match" | "mcq" | null | undefined;
+            template?: string | null | undefined;
+        }> & {
+            questions: mongoose.Types.DocumentArray<{
+                options: string[];
+                id?: string | null | undefined;
+                type?: "single_select" | "inline_select" | "multi_select" | "text_input" | null | undefined;
+                label?: string | null | undefined;
+                correctAnswer?: any;
+                order?: number | null | undefined;
+            }, mongoose.Types.Subdocument<mongoose.mongo.BSON.ObjectId, any, {
+                options: string[];
+                id?: string | null | undefined;
+                type?: "single_select" | "inline_select" | "multi_select" | "text_input" | null | undefined;
+                label?: string | null | undefined;
+                correctAnswer?: any;
+                order?: number | null | undefined;
+            }> & {
+                options: string[];
+                id?: string | null | undefined;
+                type?: "single_select" | "inline_select" | "multi_select" | "text_input" | null | undefined;
+                label?: string | null | undefined;
+                correctAnswer?: any;
+                order?: number | null | undefined;
+            }>;
+            matchingQuestions: mongoose.Types.DocumentArray<{
+                id?: string | null | undefined;
+                order?: number | null | undefined;
+                statement?: string | null | undefined;
+                correctParagraph?: string | null | undefined;
+            }, mongoose.Types.Subdocument<mongoose.mongo.BSON.ObjectId, any, {
+                id?: string | null | undefined;
+                order?: number | null | undefined;
+                statement?: string | null | undefined;
+                correctParagraph?: string | null | undefined;
+            }> & {
+                id?: string | null | undefined;
+                order?: number | null | undefined;
+                statement?: string | null | undefined;
+                correctParagraph?: string | null | undefined;
+            }>;
+            type?: "standalone_dropdown" | "inline_dropdown" | "paragraph_match" | "mcq" | null | undefined;
+            template?: string | null | undefined;
+        }>;
+    } | null | undefined;
+    metadata?: {
+        difficulty: "easy" | "medium" | "hard";
+        tags: string[];
+        source?: string | null | undefined;
+        estimatedTime?: number | null | undefined;
+    } | null | undefined;
 }> & {
     _id: mongoose.Types.ObjectId;
 } & {

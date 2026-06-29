@@ -3,20 +3,35 @@ import logger from '../utils/logger.js';
 import jwt from 'jsonwebtoken';
 import { env } from '../config/env.js';
 /** Must match Express `app.ts` — Engine.IO polling bypasses the Express `cors()` middleware. */
-function socketAllowedOrigins() {
-    return Array.from(new Set([
+function socketCorsOrigin() {
+    const staticOrigins = new Set([
         'http://localhost:5173',
         'http://localhost:5174',
         'http://127.0.0.1:5173',
         'http://127.0.0.1:5174',
+        'https://letscrack-frontend.onrender.com',
         env.CORS_ORIGIN,
         env.FRONTEND_URL,
-    ].filter((o) => typeof o === 'string' && o.length > 0)));
+    ].filter((o) => typeof o === 'string' && o.length > 0));
+    return (origin, callback) => {
+        if (!origin)
+            return callback(null, true);
+        if (staticOrigins.has(origin))
+            return callback(null, true);
+        try {
+            if (new URL(origin).hostname.endsWith('.onrender.com'))
+                return callback(null, true);
+        }
+        catch {
+            /* ignore */
+        }
+        return callback(new Error(`Socket CORS blocked for origin: ${origin}`));
+    };
 }
 export const setupSocket = (httpServer) => {
     const io = new Server(httpServer, {
         cors: {
-            origin: socketAllowedOrigins(),
+            origin: socketCorsOrigin(),
             methods: ['GET', 'POST'],
             credentials: true,
         },

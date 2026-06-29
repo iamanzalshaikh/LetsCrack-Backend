@@ -1,4 +1,4 @@
-import { cleanEnv, str, port, url, host } from 'envalid';
+import { cleanEnv, str, port, url, host, bool } from 'envalid';
 import dotenv from 'dotenv';
 dotenv.config();
 export const env = cleanEnv(process.env, {
@@ -6,6 +6,8 @@ export const env = cleanEnv(process.env, {
     PORT: port({ default: 5000 }),
     DATABASE_URL: str({ default: '' }),
     MONGO_URL: str(),
+    /** Optional full URL (Render Redis, Upstash, etc.). Takes precedence over host/port when set. */
+    REDIS_URL: str({ default: '' }),
     REDIS_HOST: host({ default: 'localhost' }),
     REDIS_PORT: port({ default: 6379 }),
     // JWT
@@ -21,8 +23,10 @@ export const env = cleanEnv(process.env, {
     // URLs
     FRONTEND_URL: url({ default: 'http://localhost:3000' }),
     CORS_ORIGIN: str({ default: 'http://localhost:3000' }),
-    // Gemini AI
-    GEMINI_API_KEY: str(),
+    /** Set true only when Gemini API grading should run (default: off). */
+    AI_GRADING_ENABLED: bool({ default: false }),
+    // Gemini AI (optional when AI_GRADING_ENABLED is false)
+    GEMINI_API_KEY: str({ default: '' }),
     GEMINI_MODEL: str({ default: 'gemini-flash-latest' }),
 });
 //# sourceMappingURL=env.js.map

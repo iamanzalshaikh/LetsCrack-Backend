@@ -27,11 +27,56 @@ const QuestionBankSchema = new mongoose.Schema({
     mcqs: [{
             questionText: String,
             options: [String], // Array of choices
-            correctOption: Number // Index of the correct answer (0-3)
+            correctOption: Number, // Index of the correct answer (0-3)
+            questionAudioUrl: String,
+            sectionAudioUrl: String,
+            sectionImage: String,
+            sectionIntroText: String,
+            sectionScript: String
         }],
     createdAt: { type: Date, default: Date.now },
-    updatedAt: { type: Date, default: Date.now }
+    updatedAt: { type: Date, default: Date.now },
+    // Generic assessment engine properties
+    title: String,
+    instructions: String,
+    instructionsPage2: String,
+    partInstructionsText: String,
+    timerSeconds: Number,
+    layoutType: { type: String, enum: ['split', 'single'], default: 'split' },
+    questionPoolId: String,
+    leftPanel: {
+        type: { type: String, enum: ['markdown', 'image', 'audio', 'none'], default: 'markdown' },
+        contentBlocks: [String],
+        mediaUrl: String
+    },
+    rightPanel: {
+        sections: [{
+                type: { type: String, enum: ['standalone_dropdown', 'inline_dropdown', 'paragraph_match', 'mcq'] },
+                template: String,
+                questions: [{
+                        id: String,
+                        type: { type: String, enum: ['single_select', 'inline_select', 'multi_select', 'text_input'] },
+                        label: String,
+                        options: [String],
+                        correctAnswer: mongoose.Schema.Types.Mixed,
+                        order: Number
+                    }],
+                matchingQuestions: [{
+                        id: String,
+                        statement: String,
+                        correctParagraph: String,
+                        order: Number
+                    }]
+            }]
+    },
+    metadata: {
+        difficulty: { type: String, enum: ['easy', 'medium', 'hard'], default: 'medium' },
+        tags: [String],
+        source: String,
+        estimatedTime: Number
+    }
 });
+QuestionBankSchema.index({ testSetNumber: 1, module: 1, taskNumber: 1 });
 const QuestionBank = mongoose.model('QuestionBank', QuestionBankSchema);
 export default QuestionBank;
 export { QuestionBankSchema };

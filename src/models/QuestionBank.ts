@@ -28,7 +28,12 @@ const QuestionBankSchema = new mongoose.Schema({
   mcqs: [{
     questionText: String,
     options: [String],    // Array of choices
-    correctOption: Number // Index of the correct answer (0-3)
+    correctOption: Number, // Index of the correct answer (0-3)
+    questionAudioUrl: String,
+    sectionAudioUrl: String,
+    sectionImage: String,
+    sectionIntroText: String,
+    sectionScript: String
   }],
   createdAt: { type: Date, default: Date.now },
   updatedAt: { type: Date, default: Date.now },
@@ -36,6 +41,8 @@ const QuestionBankSchema = new mongoose.Schema({
   // Generic assessment engine properties
   title: String,
   instructions: String,
+  instructionsPage2: String,
+  partInstructionsText: String,
   timerSeconds: Number,
   layoutType: { type: String, enum: ['split', 'single'], default: 'split' },
   questionPoolId: String,
@@ -74,6 +81,8 @@ const QuestionBankSchema = new mongoose.Schema({
     estimatedTime: Number
   }
 });
+
+QuestionBankSchema.index({ testSetNumber: 1, module: 1, taskNumber: 1 });
 
 const QuestionBank = mongoose.model('QuestionBank', QuestionBankSchema);
 

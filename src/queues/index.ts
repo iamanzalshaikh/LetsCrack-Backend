@@ -11,7 +11,9 @@ import {
   gradeWritingTask,
   buildBlendedCelpipWritingFeedback,
 } from '../utils/gemini.service.js';
+import { countGradedSpeaking, countGradedWriting } from '../utils/gradingProgress.js';
 import { emitToUser } from '../sockets/emitter.js';
+import { env } from '../config/env.js';
 
 const clampBand = (value: unknown): number => {
   const numeric = Number(value);
@@ -105,11 +107,11 @@ const emitGradingProgressAfterSessionUpdate = async (
   const [totalWritingTasks, totalSpeakingTasks, readingTask, listeningTask] = await Promise.all([
     WritingQuestion.countDocuments({ testSetNumber }),
     SpeakingQuestion.countDocuments({ testSetNumber }),
-    QuestionBank.findOne({ module: 'reading', testSetNumber }).select('mcqs'),
-    QuestionBank.findOne({ module: 'listening', testSetNumber }).select('mcqs'),
+    QuestionBank.findOne({ module: 'reading', testSetNumber }).select('mcqs').lean(),
+    QuestionBank.findOne({ module: 'listening', testSetNumber }).select('mcqs').lean(),
   ]);
-  const gradedWriting = session.writingResponses.filter((r) => (r.aiBand || 0) > 0).length;
-  const gradedSpeaking = session.speakingRecordings.filter((r) => (r.aiBand || 0) > 0).length;
+  const gradedWriting = countGradedWriting(session.writingResponses);
+  const gradedSpeaking = countGradedSpeaking(session.speakingRecordings);
   const selectedModules = session.selectedModules || ['writing', 'speaking'];
   const readingCount = readingTask?.mcqs?.length || 0;
   const listeningCount = listeningTask?.mcqs?.length || 0;
@@ -268,7 +270,8 @@ export const cancelGradingJobsForSession = async (sessionId: string): Promise<nu
   return removed;
 };
 
-export const gradingWorker = new Worker(
+export const gradingWorker = env.AI_GRADING_ENABLED
+  ? new Worker(
   'grading',
   async (job: Job) => {
     const { sessionId, testSetNumber, taskNumber, subTask, module = 'speaking' } = job.data as {
@@ -294,7 +297,7 @@ export const gradingWorker = new Worker(
       if (module === 'speaking') {
         const tn = Number(taskNumber);
         const st: 'A' | 'B' | null = tn === 5 ? (subTask === 'B' ? 'B' : 'A') : null;
-        const question = await SpeakingQuestion.findOne({ testSetNumber, taskNumber: tn, subTask: st });
+        const question = await SpeakingQuestion.findOne({ testSetNumber, taskNumber: tn, subTask: st }).lean();
         if (!question) throw new Error('Question not found');
         const recording = session.speakingRecordings.find((r) => {
           const m = r as { taskNumber: number; subTask?: string | null };
@@ -351,7 +354,7 @@ export const gradingWorker = new Worker(
         }
       } else if (module === 'writing') {
         const tn = Number(taskNumber);
-        const question = await WritingQuestion.findOne({ testSetNumber, taskNumber });
+        const question = await WritingQuestion.findOne({ testSetNumber, taskNumber }).lean();
         if (!question) throw new Error('Question not found');
         const response = session.writingResponses.find(r => r.taskNumber === taskNumber);
         if (!response || !response.responseText) throw new Error('Response text not found for writing task');
@@ -413,12 +416,15 @@ export const gradingWorker = new Worker(
       throw error; 
     }
   },
-  { connection: redis, concurrency: 1 } 
-);
+  { connection: redis, concurrency: 1 },
+)
+  : null;
 
 // Event Listeners
 notificationWorker.on('completed', (job) => logger.info(`Notification job ${job.id} completed`));
-gradingWorker.on('completed', (job) => logger.info(`Grading job ${job.id} completed`));
-gradingWorker.on('failed', (job, err) => logger.error(`Grading job ${job?.id} failed:`, err));
+if (gradingWorker) {
+  gradingWorker.on('completed', (job) => logger.info(`Grading job ${job.id} completed`));
+  gradingWorker.on('failed', (job, err) => logger.error(`Grading job ${job?.id} failed:`, err));
+}
 
 export default { gradingQueue, notificationQueue };

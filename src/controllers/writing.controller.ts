@@ -5,9 +5,10 @@ import SpeakingQuestion from '../models/SpeakingQuestion.js';
 import QuestionBank from '../models/QuestionBank.js';
 import TestSet from '../models/TestSet.js';
 import { gradingQueue } from '../queues/index.js';
-import { emitToUser } from '../sockets/emitter.js';
+import { isAiGradingEnabled } from '../utils/gradingProgress.js';
 import { isActionAllowed } from '../utils/modeRules.js';
 import logger from '../utils/logger.js';
+import { getOrSetTestSetCache } from '../utils/cache.js';
 
 async function getSortedWritingTaskNumbers(testSetNumber: number): Promise<number[]> {
   const rows = await WritingQuestion.find({ testSetNumber })
@@ -290,24 +291,26 @@ export const submit = async (req: Request, res: Response, next: NextFunction) =>
     let totalExpected = 0;
     let submittedCount = 0;
 
+    const cache = await getOrSetTestSetCache(Number(testSetNumber));
+
     if (selectedModules.includes('writing')) {
-      const totalWritingTasks = await WritingQuestion.countDocuments({ testSetNumber: Number(testSetNumber) });
+      const totalWritingTasks = cache.writing.length;
       totalExpected += totalWritingTasks;
       submittedCount += session.writingResponses.filter((r) => Boolean(r.submittedAt)).length;
     }
     if (selectedModules.includes('speaking')) {
-      const totalSpeakingTasks = await SpeakingQuestion.countDocuments({ testSetNumber: Number(testSetNumber) });
+      const totalSpeakingTasks = cache.speaking.length;
       totalExpected += totalSpeakingTasks;
       submittedCount += session.speakingRecordings.length;
     }
     if (selectedModules.includes('reading')) {
-      const readingTask = await QuestionBank.findOne({ module: 'reading', testSetNumber: Number(testSetNumber) });
+      const readingTask = cache.reading[0];
       const readingCount = readingTask?.mcqs?.length || 0;
       totalExpected += readingCount;
       submittedCount += session.mcqResponses.filter((r: any) => r.module === 'reading').length;
     }
     if (selectedModules.includes('listening')) {
-      const listeningTask = await QuestionBank.findOne({ module: 'listening', testSetNumber: Number(testSetNumber) });
+      const listeningTask = cache.listening[0];
       const listeningCount = listeningTask?.mcqs?.length || 0;
       totalExpected += listeningCount;
       submittedCount += session.mcqResponses.filter((r: any) => r.module === 'listening').length;
@@ -328,9 +331,9 @@ export const submit = async (req: Request, res: Response, next: NextFunction) =>
     }
 
     let gradingJobId: string | number | null = null;
-    let aiGradingStatus: 'queued' | 'skipped' = 'queued';
+    let aiGradingStatus: 'queued' | 'skipped' = 'skipped';
 
-    if (!(session as { endedEarly?: boolean }).endedEarly) {
+    if (isAiGradingEnabled() && !(session as { endedEarly?: boolean }).endedEarly) {
       const gradingJob = await gradingQueue.add(
         `grade-writing-session-${session._id}-task-${taskNumber}`,
         {
@@ -341,14 +344,46 @@ export const submit = async (req: Request, res: Response, next: NextFunction) =>
         },
       );
       gradingJobId = gradingJob.id ?? null;
+      aiGradingStatus = 'queued';
 
+      const { emitToUser } = await import('../sockets/emitter.js');
       emitToUser(studentId.toString(), 'grading:queued', {
         sessionId: session._id,
         module: 'writing',
         taskNumber: Number(taskNumber),
       });
-    } else {
-      aiGradingStatus = 'skipped';
+    } else if (
+      !isAiGradingEnabled() &&
+      !(session as { endedEarly?: boolean }).endedEarly
+    ) {
+      const cache = await getOrSetTestSetCache(Number(testSetNumber));
+      const expectedWriting = cache.writing.length;
+      const submittedWriting = session.writingResponses.filter((r) => Boolean(r.submittedAt)).length;
+      const selectedModules = session.selectedModules || ['writing', 'speaking'];
+      const expectedSpeaking = selectedModules.includes('speaking') ? cache.speaking.length : 0;
+      const submittedSpeaking = session.speakingRecordings.length;
+      const readingTask = cache.reading[0];
+      const listeningTask = cache.listening[0];
+      const expectedReading = selectedModules.includes('reading') ? (readingTask?.mcqs?.length || 0) : 0;
+      const expectedListening = selectedModules.includes('listening')
+        ? (listeningTask?.mcqs?.length || 0)
+        : 0;
+      const submittedReading = session.mcqResponses.filter((r) => r.module === 'reading').length;
+      const submittedListening = session.mcqResponses.filter((r) => r.module === 'listening').length;
+      const totalExpected =
+        (selectedModules.includes('writing') ? expectedWriting : 0) +
+        (selectedModules.includes('speaking') ? expectedSpeaking : 0) +
+        expectedReading +
+        expectedListening;
+      const totalSubmitted =
+        (selectedModules.includes('writing') ? submittedWriting : 0) +
+        (selectedModules.includes('speaking') ? submittedSpeaking : 0) +
+        submittedReading +
+        submittedListening;
+      if (totalExpected > 0 && totalSubmitted >= totalExpected) {
+        session.status = 'graded';
+        await session.save();
+      }
     }
 
     /** Never block HTTP on Gemini / worker — grading continues in BullMQ (see queues/index.ts). */
@@ -385,13 +420,9 @@ export const getTask = async (req: Request, res: Response, next: NextFunction) =
       return res.status(403).json({ error: 'Writing module is not enabled for this session' });
     }
     
-    const [task, testSet] = await Promise.all([
-      WritingQuestion.findOne({ 
-        testSetNumber: Number(setNumber),
-        taskNumber: Number(taskNumber)
-      }),
-      TestSet.findOne({ testSetNumber: Number(setNumber) }).select('instructions').lean()
-    ]);
+    const cache = await getOrSetTestSetCache(Number(setNumber));
+    const task = cache.writing.find((w: any) => w.taskNumber === Number(taskNumber));
+    const testSet = cache.testSet ? { _id: cache.testSet._id, instructions: cache.testSet.instructions } : null;
 
     if (!task) return res.status(404).json({ error: 'Writing task not found' });
 
@@ -413,7 +444,7 @@ export const getTask = async (req: Request, res: Response, next: NextFunction) =
       canViewSampleResponses,
     };
 
-    const taskPayload: any = task.toObject();
+    const taskPayload = typeof task.toObject === 'function' ? task.toObject() : JSON.parse(JSON.stringify(task));
     if (!canViewSampleResponses) {
       delete taskPayload.sampleResponse;
     }

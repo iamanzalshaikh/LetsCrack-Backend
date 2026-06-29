@@ -4,6 +4,7 @@ import helmet from 'helmet';
 import morgan from 'morgan';
 import cookieParser from 'cookie-parser';
 import swaggerUi from 'swagger-ui-express';
+import compression from 'compression';
 import { env } from './config/env.js';
 import { swaggerSpec } from './docs/swagger.js';
 import { errorHandler } from './middlewares/error.middleware.js';
@@ -18,6 +19,7 @@ import logger from './utils/logger.js';
 const app = express();
 // Middlewares
 app.use(helmet());
+app.use(compression());
 const localDevOrigins = new Set([
     'http://localhost:5173',
     'http://localhost:5174',
@@ -25,12 +27,25 @@ const localDevOrigins = new Set([
     'http://127.0.0.1:5174',
 ]);
 const configuredOrigins = new Set([env.CORS_ORIGIN, env.FRONTEND_URL].filter(Boolean));
+const isAllowedOrigin = (origin) => {
+    if (configuredOrigins.has(origin) || localDevOrigins.has(origin))
+        return true;
+    try {
+        const host = new URL(origin).hostname;
+        if (host.endsWith('.onrender.com'))
+            return true;
+    }
+    catch {
+        /* ignore malformed origin */
+    }
+    return false;
+};
 app.use(cors({
     origin: (origin, callback) => {
         // Allow non-browser clients and same-origin server calls.
         if (!origin)
             return callback(null, true);
-        if (configuredOrigins.has(origin) || localDevOrigins.has(origin)) {
+        if (isAllowedOrigin(origin)) {
             return callback(null, true);
         }
         return callback(new Error(`CORS blocked for origin: ${origin}`));
