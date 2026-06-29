@@ -6,28 +6,13 @@ export const READING_PART2 = {
   timerSeconds: 480,
   layoutType: 'split' as const,
   leftPanel: {
-    type: 'markdown' as const,
+    type: 'image' as const,
     contentBlocks: [
       `**BURDY'S CHOCOLATES — Product Range Diagram**
-
-**FUDGE**
-- Star-shaped fudge
-- Long rectangle fudge
-
-**GANACHE**
-- Dark milk chocolate ganache (healthier line — limited ingredients)
-
-**PRALINE**
-- Praline rose blossoms
-- Leaf-shaped marzipan (contains almonds)
-
-**TRUFFLE**
-- Globe-shaped truffles (ringed planet style)
-- Swirling spiral marzipan (most popular item in market research)
-
-*Note: Upload the official diagram image in the admin panel to replace this text reference.*`,
+      
+      *Note: Upload the official diagram image in the admin panel to replace this text reference.*`,
     ],
-    mediaUrl: '',
+    mediaUrl: '/video/image.png',
   },
   rightPanel: {
     sections: [
