@@ -335,17 +335,30 @@ export const uploadMedia = async (req, res, next) => {
         if (!file) {
             return res.status(400).json({ error: 'No file uploaded' });
         }
-        const isSupportedMedia = file.mimetype.startsWith('image/') ||
-            file.mimetype.startsWith('video/') ||
-            file.mimetype.startsWith('audio/');
-        if (!isSupportedMedia) {
+        const nameLower = (file.originalname || '').toLowerCase();
+        const isWavOrAudioExt = /\.(wav|mp3|m4a|ogg|webm|aac|flac)$/i.test(nameLower);
+        const isImage = file.mimetype.startsWith('image/');
+        const isVideo = file.mimetype.startsWith('video/');
+        const isAudio = file.mimetype.startsWith('audio/') ||
+            file.mimetype === 'audio/wave' ||
+            // Windows sometimes sends WAV as octet-stream
+            (file.mimetype === 'application/octet-stream' && isWavOrAudioExt) ||
+            isWavOrAudioExt;
+        if (!isImage && !isVideo && !isAudio) {
             return res
                 .status(400)
                 .json({ error: 'Only image, video, or audio uploads are supported on this endpoint' });
         }
-        const uploadedUrl = await uploadOnCloudinary(file.buffer, { folder: 'lce-question-media' });
+        // WAV/audio must use resource_type video on Cloudinary (same as seed upload scripts)
+        const resource_type = isAudio || isVideo ? 'video' : isImage ? 'image' : 'auto';
+        const uploadedUrl = await uploadOnCloudinary(file.buffer, {
+            folder: 'lce-question-media',
+            resource_type,
+        });
         if (!uploadedUrl) {
-            return res.status(500).json({ error: 'Failed to upload media to Cloudinary' });
+            return res.status(500).json({
+                error: 'Failed to upload media to Cloudinary. Check Cloudinary credentials and try again.',
+            });
         }
         return res.status(201).json({
             success: true,

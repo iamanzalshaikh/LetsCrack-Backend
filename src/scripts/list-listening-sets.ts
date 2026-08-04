@@ -22,7 +22,12 @@ for (const n of sets.sort()) {
     .forEach((d: any) => console.log(`  Part ${d.taskNumber}: ${d.title}`));
 }
 
-const names = await mongoose.connection.db.listCollections().toArray();
+const db = mongoose.connection.db;
+if (!db) {
+  console.error('Mongo DB handle unavailable after connect');
+  process.exit(1);
+}
+const names = await db.listCollections().toArray();
 console.log('\ncollections:', names.map((c) => c.name).join(', '));
 
 await mongoose.disconnect();

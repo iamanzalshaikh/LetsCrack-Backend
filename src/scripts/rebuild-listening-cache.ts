@@ -1,7 +1,7 @@
 import dotenv from 'dotenv';
 import path from 'path';
 import { fileURLToPath } from 'url';
-import Redis from 'ioredis';
+import { Redis } from 'ioredis';
 import { getOrSetTestSetCache, clearCachedQuestions } from '../utils/cache.js';
 import mongoose from 'mongoose';
 
