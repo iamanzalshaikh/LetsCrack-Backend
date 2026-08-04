@@ -216,17 +216,19 @@ const seedListeningData = async () => {
     });
     await part1.save();
 
-    // Part 2: Listening to a Daily Life Conversation
+    // Part 2: Listening to a Daily Life Conversation (University Campus, 3-2-3)
     logger.info('Seeding Listening Part 2...');
     const part2 = new QuestionBank({
       module: 'listening',
       testSetNumber: 1,
       taskNumber: 2,
       title: 'Part 2: Listening to a Daily Life Conversation',
-      instructions: 'You will hear a conversation between two friends planning a weekend hiking trip. Listen and answer the 5 questions.',
-      partInstructionsText: "You will hear a conversation followed by 5 questions.\nListen to each question. You will hear the questions only once.\nChoose the best answer to each question.",
-      timerSeconds: 360,
-      audioUrl: 'https://www.soundhelix.com/examples/mp3/SoundHelix-Song-2.mp3',
+      instructions:
+        'You will hear a conversation between a woman and a man on a university campus. The woman is a student and the man works at the information desk.',
+      partInstructionsText:
+        'You will hear a conversation in 3 sections. You will hear each section only once.\nAfter each section, you will hear 2 or 3 questions. You will hear the questions only once.\nChoose the best answer to each question.',
+      timerSeconds: 480,
+      audioUrl: '',
       allowReplay: true,
       allowSeek: true,
       playLimit: 0,
@@ -234,17 +236,19 @@ const seedListeningData = async () => {
     });
     await part2.save();
 
-    // Part 3: Listening for Information
+    // Part 3: Listening for Information (Transit Lost and Found, 3-3-2)
     logger.info('Seeding Listening Part 3...');
     const part3 = new QuestionBank({
       module: 'listening',
       testSetNumber: 1,
       taskNumber: 3,
       title: 'Part 3: Listening for Information',
-      instructions: 'You will hear an interview with a botanist explaining a rare species of plants. Listen and answer the 6 questions.',
-      partInstructionsText: "You will hear a conversation followed by 6 questions.\nListen to each question. You will hear the questions only once.\nChoose the best answer to each question.",
-      timerSeconds: 400,
-      audioUrl: 'https://www.soundhelix.com/examples/mp3/SoundHelix-Song-3.mp3',
+      instructions:
+        'You will hear a conversation between a man and a woman at a transit lost-and-found office. The woman works there and the man has lost something.',
+      partInstructionsText:
+        'You will hear a conversation in 3 sections. You will hear each section only once.\nAfter each section, you will hear 2 or 3 questions. You will hear the questions only once.\nChoose the best answer to each question.',
+      timerSeconds: 480,
+      audioUrl: '',
       allowReplay: true,
       allowSeek: true,
       playLimit: 0,

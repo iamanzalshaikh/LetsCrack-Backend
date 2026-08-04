@@ -21,6 +21,21 @@ const upload = multer({
   limits: { fileSize: 50 * 1024 * 1024 }, // 50MB
 });
 
+function handleMulterUpload(req: express.Request, res: express.Response, next: express.NextFunction) {
+  upload.single('file')(req, res, (err: unknown) => {
+    if (err instanceof multer.MulterError) {
+      if (err.code === 'LIMIT_FILE_SIZE') {
+        return res.status(413).json({ error: 'File too large (max 50MB).' });
+      }
+      return res.status(400).json({ error: err.message });
+    }
+    if (err) {
+      return res.status(400).json({ error: (err as Error).message || 'Upload parse failed' });
+    }
+    next();
+  });
+}
+
 // Apply auth and admin role middleware to all admin routes
 router.use(authMiddleware as any);
 router.use(requireRole(['admin']));
@@ -71,7 +86,7 @@ router.post('/test-set/:testSetNumber/publish', publishTestSet);
  *     summary: Upload question image/media to Cloudinary
  *     tags: [Admin]
  */
-router.post('/media/upload', upload.single('file'), uploadMedia);
+router.post('/media/upload', handleMulterUpload, uploadMedia);
 
 /**
  * @swagger

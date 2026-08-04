@@ -7,6 +7,11 @@ import logger from './logger.js';
 
 const CACHE_TTL = 3600 * 24; // 24 hours in seconds
 const PUBLISHED_TESTS_KEY = 'testsets:published';
+/** Bump when question media/content changes so all environments drop stale Redis entries. */
+const QUESTIONS_CACHE_VERSION = 'v4-listening-fresh-mongo';
+
+const questionsCacheKey = (testSetNumber: number) =>
+  `testset:${testSetNumber}:questions:${QUESTIONS_CACHE_VERSION}`;
 
 export interface TestSetCacheData {
   testSet: any;
@@ -20,7 +25,7 @@ export interface TestSetCacheData {
  * Get or set cache for all questions and details in a test set.
  */
 export const getOrSetTestSetCache = async (testSetNumber: number): Promise<TestSetCacheData> => {
-  const key = `testset:${testSetNumber}:questions`;
+  const key = questionsCacheKey(testSetNumber);
   try {
     const cached = await redis.get(key);
     if (cached) {
@@ -69,9 +74,10 @@ export const getOrSetTestSetCache = async (testSetNumber: number): Promise<TestS
  * Clear cache for a specific test set.
  */
 export const clearCachedQuestions = async (testSetNumber: number): Promise<void> => {
-  const key = `testset:${testSetNumber}:questions`;
+  const key = questionsCacheKey(testSetNumber);
+  const legacyKey = `testset:${testSetNumber}:questions`;
   try {
-    await redis.del(key);
+    await redis.del(key, legacyKey);
     logger.info(`[Redis Cache] Invalidated cache for test set ${testSetNumber}`);
   } catch (error) {
     logger.error(`[Redis Cache] Error deleting cache for test set ${testSetNumber}:`, error);

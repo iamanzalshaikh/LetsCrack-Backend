@@ -73,6 +73,5 @@ export function buildTask3Prompt(): string {
 }
 
 export function buildTask4Prompt(setNumber: number): string {
-  const prompt = SPEAKING_TASK4_PROMPTS[setNumber - 1] || SPEAKING_TASK4_QUESTION;
-  return `Making Predictions\n\n${prompt}`;
+  return `Making Predictions\n\n${SPEAKING_TASK4_QUESTION}`;
 }

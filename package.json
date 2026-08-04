@@ -12,6 +12,7 @@
     "seed": "tsx src/seeds/seed.ts",
     "seed:admin": "tsx src/scripts/seed-superadmin.ts",
     "seed:users": "tsx src/scripts/seed-users.ts",
+    "upload:listening-set1": "tsx src/scripts/upload-listening-set1-audio.ts",
     "db:generate": "prisma generate",
     "db:migrate": "prisma migrate dev",
     "db:push": "prisma db push",

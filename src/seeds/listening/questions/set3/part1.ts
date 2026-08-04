@@ -1,4 +1,4 @@
-/** Part 2 — Set 2 University Campus (distribution 3-2-3). Audio uploaded via admin. */
+/** Test Set 3 — Part 1 University Campus (distribution 3-2-3). Audio uploaded via admin. */
 
 const SECTION1_SCRIPT = `Woman: Excuse me, I'm sorry to bother you. My lecture began ten minutes ago and I simply cannot find the building.
 Man: You're not bothering me at all, that's what this desk is for. It's the first week, so half the campus is going round in circles. Which building do you need?
@@ -22,7 +22,7 @@ Woman: I've discovered that the hard way this morning.
 Man: Everybody does, honestly. Give it a fortnight and you'll be the one standing here giving directions to somebody else.
 Woman: I hope so. Thank you, you've rescued my morning.`;
 
-export const LISTENING_PART2_MCQS = [
+export const LISTENING_SET3_PART1_MCQS = [
   {
     questionText: 'Why does the woman approach the man?',
     options: [

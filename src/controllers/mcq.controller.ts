@@ -633,6 +633,19 @@ export const getMcqTask = async (req: Request, res: Response, next: NextFunction
 
     if (!task) return res.status(404).json({ error: 'MCQ Task not found' });
 
+    // Listening audio URLs change often. Redis can serve a stale task without Cloudinary
+    // media, which makes the player fall back to a silent TTS blob. Always read the
+    // listening task fresh from Mongo so live/local get current audioUrl / questionAudioUrl.
+    if (moduleParam === 'listening') {
+      const fresh = await QuestionBank.findOne({
+        module: 'listening',
+        testSetNumber: Number(setNumber),
+        taskNumber: Number(taskNumber || task.taskNumber || 1),
+      }).lean();
+      if (fresh) {
+        task = fresh;
+      }
+    }
     // Handle canViewAnswerKey projection logic in memory
     if (task && !canViewAnswerKey) {
       // Clone the task object to avoid mutating the cached object in-memory

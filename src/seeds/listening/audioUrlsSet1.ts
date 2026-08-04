@@ -1,0 +1,25 @@
+/** Cloudinary URLs for Listening Practice Set 1 (uploaded from Downloads WAVs).
+ *
+ * Final mapping:
+ *   Part 1 — main conversation + question1–3 stems
+ *   Part 2 — Part-2 conversation + question4–5 stems
+ *   Part 3 — Part-3 conversation + question6–8 stems
+ */
+export const LISTENING_SET1_AUDIO = {
+  part1Main:
+    'https://res.cloudinary.com/dn8rrk9jq/video/upload/v1785333504/lce-question-media/listening/set1/part1-main.wav',
+  q1: 'https://res.cloudinary.com/dn8rrk9jq/video/upload/v1785333506/lce-question-media/listening/set1/part1-q1.wav',
+  q2: 'https://res.cloudinary.com/dn8rrk9jq/video/upload/v1785333508/lce-question-media/listening/set1/part1-q2.wav',
+  q3: 'https://res.cloudinary.com/dn8rrk9jq/video/upload/v1785333509/lce-question-media/listening/set1/part1-q3.wav',
+
+  part2Main:
+    'https://res.cloudinary.com/dn8rrk9jq/video/upload/v1785338833/lce-question-media/listening/set1/part2-main-1785338826732.wav',
+  q4: 'https://res.cloudinary.com/dn8rrk9jq/video/upload/v1785338836/lce-question-media/listening/set1/part2-q1-1785338826732.wav',
+  q5: 'https://res.cloudinary.com/dn8rrk9jq/video/upload/v1785338837/lce-question-media/listening/set1/part2-q2-1785338826732.wav',
+
+  part3Main:
+    'https://res.cloudinary.com/dn8rrk9jq/video/upload/v1785338835/lce-question-media/listening/set1/part3-main-1785338826732.wav',
+  q6: 'https://res.cloudinary.com/dn8rrk9jq/video/upload/v1785338839/lce-question-media/listening/set1/part3-q1-1785338826732.wav',
+  q7: 'https://res.cloudinary.com/dn8rrk9jq/video/upload/v1785338840/lce-question-media/listening/set1/part3-q2-1785338826732.wav',
+  q8: 'https://res.cloudinary.com/dn8rrk9jq/video/upload/v1785338841/lce-question-media/listening/set1/part3-q3-1785338826732.wav',
+} as const;
