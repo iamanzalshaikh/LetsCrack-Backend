@@ -1,7 +1,7 @@
 import TestSession from "../models/TestSession.js";
 import { uploadStudentSpeakingAudio } from "../utils/cloudinaryMedia.js";
 import { gradingQueue } from "../queues/index.js";
-import { isAiGradingEnabled } from "../utils/gradingProgress.js";
+import { isAiGradingEnabled } from "../utils/modeRules.js";
 import logger from "../utils/logger.js";
 import { emitToUser } from "../sockets/emitter.js";
 import { isActionAllowed } from "../utils/modeRules.js";

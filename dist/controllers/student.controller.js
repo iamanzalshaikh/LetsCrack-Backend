@@ -1,5 +1,5 @@
 import mongoose from 'mongoose';
-import { countGradedSpeaking, countGradedWriting, isAiGradingEnabled } from '../utils/gradingProgress.js';
+import { countGradedSpeaking, countGradedWriting, isAiGradingEnabled } from '../utils/modeRules.js';
 import TestResult from '../models/TestResult.js';
 import TestSession from '../models/TestSession.js';
 import QuestionBank from '../models/QuestionBank.js';

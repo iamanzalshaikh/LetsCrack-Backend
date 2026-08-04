@@ -6,7 +6,7 @@ import { calculateBand } from '../utils/bandCalculator.js';
 import { isActionAllowed } from '../utils/modeRules.js';
 import { computeEffectiveMediaPolicy } from '../utils/mediaPolicy.js';
 import { getOrSetTestSetCache } from '../utils/cache.js';
-import { countGradedSpeaking, countGradedWriting } from '../utils/gradingProgress.js';
+import { countGradedSpeaking, countGradedWriting } from '../utils/modeRules.js';
 const bandToNumeric = (band) => {
     if (!band)
         return null;

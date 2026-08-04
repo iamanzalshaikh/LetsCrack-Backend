@@ -5,7 +5,7 @@ import SpeakingQuestion from '../models/SpeakingQuestion.js';
 import QuestionBank from '../models/QuestionBank.js';
 import TestSet from '../models/TestSet.js';
 import { gradingQueue } from '../queues/index.js';
-import { isAiGradingEnabled } from '../utils/gradingProgress.js';
+import { isAiGradingEnabled } from '../utils/modeRules.js';
 import { isActionAllowed } from '../utils/modeRules.js';
 import logger from '../utils/logger.js';
 import { getOrSetTestSetCache } from '../utils/cache.js';

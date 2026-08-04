@@ -7,7 +7,7 @@ import WritingQuestion from '../models/WritingQuestion.js';
 import SpeakingQuestion from '../models/SpeakingQuestion.js';
 import TestResult from '../models/TestResult.js';
 import { gradeSpeakingTask, gradeWritingTask, } from '../utils/gemini.service.js';
-import { countGradedSpeaking, countGradedWriting } from '../utils/gradingProgress.js';
+import { countGradedSpeaking, countGradedWriting } from '../utils/modeRules.js';
 import { emitToUser } from '../sockets/emitter.js';
 import { env } from '../config/env.js';
 const clampBand = (value) => {

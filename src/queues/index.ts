@@ -11,7 +11,7 @@ import {
   gradeWritingTask,
   buildBlendedCelpipWritingFeedback,
 } from '../utils/gemini.service.js';
-import { countGradedSpeaking, countGradedWriting } from '../utils/gradingProgress.js';
+import { countGradedSpeaking, countGradedWriting } from '../utils/modeRules.js';
 import { emitToUser } from '../sockets/emitter.js';
 import { env } from '../config/env.js';
 

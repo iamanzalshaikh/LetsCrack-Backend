@@ -1,3 +1,4 @@
+import { env } from '../config/env.js';
 export const MODE_RULES = {
     practice: {
         listening: {
@@ -55,5 +56,21 @@ export const MODE_RULES = {
 export const isActionAllowed = (mode = 'practice', module, action) => {
     return MODE_RULES[mode][module][action];
 };
-export default { MODE_RULES, isActionAllowed };
+/** When false (default), writing/speaking submissions are saved but never sent to Gemini. */
+export function isAiGradingEnabled() {
+    return env.AI_GRADING_ENABLED;
+}
+export function countGradedWriting(responses) {
+    if (!isAiGradingEnabled()) {
+        return responses.filter((r) => Boolean(r.submittedAt)).length;
+    }
+    return responses.filter((r) => (r.aiBand || 0) > 0).length;
+}
+export function countGradedSpeaking(recordings) {
+    if (!isAiGradingEnabled()) {
+        return recordings.length;
+    }
+    return recordings.filter((r) => (r.aiBand || 0) > 0).length;
+}
+export default { MODE_RULES, isActionAllowed, isAiGradingEnabled, countGradedWriting, countGradedSpeaking };
 //# sourceMappingURL=modeRules.js.map
